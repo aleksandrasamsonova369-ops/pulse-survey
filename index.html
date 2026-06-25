@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Пульс Опрос</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--tg-theme-bg-color, #F5F5F5);
+      color: var(--tg-theme-text-color, #1a1a1a);
+      min-height: 100vh;
+      padding-bottom: 90px;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .page-header {
+      background: #7C4DFF;
+      color: white;
+      padding: 16px 20px;
+      font-size: 18px;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .content { padding: 16px; }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .field-label {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 6px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .field-input {
+      width: 100%;
+      border: 1.5px solid #E8E8E8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #FAFAFA;
+      color: #1a1a1a;
+    }
+
+    .field-input:focus { border-color: #7C4DFF; background: white; }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      margin: 16px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .question-card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .question-number {
+      font-size: 12px;
+      color: #7C4DFF;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .btn-remove {
+      background: none;
+      border: none;
+      color: #CCC;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .btn-remove:hover { color: #FF4444; background: #FFF0F0; }
+
+    .type-select {
+      width: 100%;
+      border: 1.5px solid #E8E8E8;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 14px;
+      margin-top: 8px;
+      outline: none;
+      background: #FAFAFA;
+      color: #333;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+
+    .type-select:focus { border-color: #7C4DFF; background-color: white; }
+
+    .btn-add-question {
+      width: 100%;
+      background: none;
+      border: 2px dashed #C9B8FF;
+      border-radius: 12px;
+      padding: 13px;
+      color: #7C4DFF;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 4px;
+      transition: all 0.2s;
+    }
+
+    .btn-add-question:hover { background: #F5F0FF; border-color: #7C4DFF; }
+
+    .period-buttons { display: flex; gap: 8px; }
+
+    .period-btn {
+      flex: 1;
+      padding: 10px 4px;
+      border: 1.5px solid #E8E8E8;
+      border-radius: 8px;
+      background: white;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+      color: #555;
+      transition: all 0.15s;
+    }
+
+    .period-btn.active {
+      border-color: #7C4DFF;
+      background: #F0EBFF;
+      color: #7C4DFF;
+      font-weight: 700;
+    }
+
+    .participants-row { display: flex; gap: 10px; margin-bottom: 10px; }
+
+    .radio-btn {
+      flex: 1;
+      padding: 10px;
+      border: 1.5px solid #E8E8E8;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: center;
+      color: #555;
+      transition: all 0.15s;
+    }
+
+    .radio-btn.active {
+      border-color: #7C4DFF;
+      background: #F0EBFF;
+      color: #7C4DFF;
+      font-weight: 700;
+    }
+
+    .save-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 16px;
+      background: white;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.10);
+    }
+
+    .btn-save {
+      width: 100%;
+      background: #7C4DFF;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.2px;
+      transition: background 0.15s;
+    }
+
+    .btn-save:active { background: #6B3FE7; }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+
+<!-- SCREEN: CREATE SURVEY -->
+<div id="screen-create" class="screen">
+  <div class="page-header">✏️ Создать опрос</div>
+  <div class="content">
+
+    <div class="card">
+      <div class="field-label">Название опроса</div>
+      <input type="text" id="survey-title" class="field-input"
+             placeholder="Например: Пульс-опрос июль 2026">
+    </div>
+
+    <div class="section-title">Вопросы</div>
+    <div id="questions-container"></div>
+    <button class="btn-add-question" onclick="addQuestion()">+ Добавить вопрос</button>
+
+    <div class="card">
+      <div class="field-label">Периодичность</div>
+      <div class="period-buttons">
+        <button class="period-btn active" data-value="weekly"    onclick="selectPeriod(this)">Еженед.</button>
+        <button class="period-btn"        data-value="biweekly"  onclick="selectPeriod(this)">Раз в 2 нед.</button>
+        <button class="period-btn"        data-value="monthly"   onclick="selectPeriod(this)">Ежемес.</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field-label">Участники</div>
+      <div class="participants-row">
+        <button class="radio-btn active" data-value="all"      onclick="selectParticipants(this)">Все</button>
+        <button class="radio-btn"        data-value="specific" onclick="selectParticipants(this)">Выбрать</button>
+      </div>
+      <div id="participants-input" style="display:none">
+        <input type="text" id="participants-names" class="field-input"
+               placeholder="Имена через запятую: Иван, Мария">
+      </div>
+    </div>
+
+  </div>
+
+  <div class="save-bar">
+    <button class="btn-save" onclick="saveSurvey()">Сохранить опрос</button>
+  </div>
+</div>
+
+<!-- SCREEN: DASHBOARD (Phase 2) -->
+<div id="screen-dashboard" class="screen">
+  <div class="page-header">📊 Результаты</div>
+  <div class="content">
+    <div class="empty-state">
+      <div style="font-size:48px; margin-bottom:16px">📊</div>
+      <div style="font-size:18px; font-weight:600; color:#555; margin-bottom:8px">Дашборд скоро здесь</div>
+      <div style="font-size:14px">Аналитика по опросам будет доступна в следующей версии</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- Router ---
+  const params = new URLSearchParams(window.location.search);
+  const screenName = params.get('screen') || 'create';
+
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  const target = document.getElementById('screen-' + screenName);
+  if (target) target.classList.add('active');
+
+  // --- Telegram WebApp init ---
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+  }
+
+  // --- State ---
+  let questionCount = 0;
+  let selectedPeriod = 'weekly';
+  let selectedParticipants = 'all';
+
+  // Start with one question
+  addQuestion();
+
+  // --- Functions ---
+  function addQuestion() {
+    questionCount++;
+    const id = questionCount;
+    const container = document.getElementById('questions-container');
+    const div = document.createElement('div');
+    div.className = 'question-card';
+    div.id = 'q-' + id;
+    div.innerHTML =
+      '<div class="question-header">' +
+        '<span class="question-number">Вопрос ' + id + '</span>' +
+        '<button class="btn-remove" onclick="removeQuestion(' + id + ')">✕</button>' +
+      '</div>' +
+      '<input type="text" class="field-input question-text" placeholder="Текст вопроса">' +
+      '<select class="type-select question-type">' +
+        '<option value="scale">⭐ Шкала (1–5)</option>' +
+        '<option value="nps">📊 NPS (0–10)</option>' +
+        '<option value="yesno">✅ Да / Нет</option>' +
+        '<option value="text">💬 Свободный ответ</option>' +
+      '</select>';
+    container.appendChild(div);
+  }
+
+  function removeQuestion(id) {
+    const el = document.getElementById('q-' + id);
+    if (el) el.remove();
+    renumber();
+  }
+
+  function renumber() {
+    document.querySelectorAll('.question-card').forEach(function(card, i) {
+      card.querySelector('.question-number').textContent = 'Вопрос ' + (i + 1);
+    });
+  }
+
+  function selectPeriod(btn) {
+    document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    selectedPeriod = btn.dataset.value;
+  }
+
+  function selectParticipants(btn) {
+    document.querySelectorAll('.radio-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    selectedParticipants = btn.dataset.value;
+    document.getElementById('participants-input').style.display =
+      selectedParticipants === 'specific' ? 'block' : 'none';
+  }
+
+  function saveSurvey() {
+    var title = document.getElementById('survey-title').value.trim();
+    if (!title) { alert('Введите название опроса'); return; }
+
+    var questions = [];
+    document.querySelectorAll('.question-card').forEach(function(card) {
+      var text = card.querySelector('.question-text').value.trim();
+      var type = card.querySelector('.question-type').value;
+      if (text) questions.push({ text: text, type: type });
+    });
+
+    if (questions.length === 0) { alert('Добавьте хотя бы один вопрос'); return; }
+
+    var participants = 'all';
+    if (selectedParticipants === 'specific') {
+      participants = document.getElementById('participants-names').value.trim() || 'all';
+    }
+
+    var payload = JSON.stringify({
+      action: 'create_survey',
+      title: title,
+      questions: questions,
+      periodicity: selectedPeriod,
+      participants: participants
+    });
+
+    if (tg) {
+      tg.sendData(payload);
+    } else {
+      // Dev mode — show result in browser
+      alert('DEV MODE\n\n' + payload);
+    }
+  }
+</script>
+
+</body>
+</html>
