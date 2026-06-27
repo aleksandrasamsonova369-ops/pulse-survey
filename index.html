@@ -26,7 +26,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
+      background: #F5F0E8 !important;
       color: var(--text);
       min-height: 100vh;
       padding-bottom: 90px;
@@ -267,9 +267,35 @@
       background: var(--border);
       margin: 12px 0;
     }
+
+    /* ── Analytics ── */
+    .analytics-gauge-wrap { text-align:center; padding:20px 0 12px; }
+    .analytics-gauge-label { font-size:14px; font-weight:700; color:var(--text); margin-top:8px; }
+    .analytics-gauge-status { font-size:18px; margin-top:4px; }
+    .analytics-gauge-sub { font-size:13px; color:var(--text-muted); margin-top:6px; }
+    .metric-card {
+      border-radius:12px; padding:16px 12px; text-align:center;
+    }
+    .metric-card-name {
+      font-size:11px; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.6px; margin-bottom:8px;
+    }
+    .metric-card-pct { font-size:28px; font-weight:800; }
+    .team-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .team-table th {
+      text-align:left; padding:8px 4px; font-size:11px; color:var(--text-muted);
+      font-weight:700; text-transform:uppercase; border-bottom:1px solid var(--border);
+    }
+    .team-table th:not(:first-child) { text-align:center; }
+    .team-table td { padding:10px 4px; border-bottom:1px solid #F0EAE0; }
+    .team-table td:not(:first-child) { text-align:center; }
+    .badge {
+      display:inline-block; font-weight:700; font-size:13px;
+      padding:3px 10px; border-radius:20px;
+    }
   </style>
 </head>
-<body>
+<body style="background:#F5F0E8;">
 
 <div id="screen-create" class="screen active">
 
@@ -333,14 +359,68 @@
   </div>
 </div>
 
+<div id="screen-analytics" style="display:none">
+  <div class="page-header">
+    <div class="page-header-icon">📊</div>
+    <div>
+      <div class="page-header-title">Аналитика</div>
+      <div class="page-header-sub">Результаты пульс-опросов</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="card">
+      <div class="field-label"><span class="field-label-icon">📋</span> Опрос</div>
+      <select id="analytics-select" class="field-input" onchange="renderSurveyStats()"></select>
+    </div>
+
+    <div class="card" id="gauge-card">
+      <div class="analytics-gauge-wrap">
+        <svg width="140" height="140" viewBox="0 0 140 140" style="display:block;margin:0 auto">
+          <circle cx="70" cy="70" r="56" fill="none" stroke="#DDD5C8" stroke-width="10"/>
+          <circle id="gauge-arc" cx="70" cy="70" r="56" fill="none" stroke="#52B788" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="351.86" stroke-dashoffset="351.86"
+            transform="rotate(-90 70 70)" style="transition:stroke-dashoffset 0.6s,stroke 0.3s"/>
+          <text id="gauge-num" x="70" y="78" text-anchor="middle" font-size="28"
+            font-weight="800" fill="#2C2416" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"></text>
+        </svg>
+        <div class="analytics-gauge-label">Вовлечённость</div>
+        <div class="analytics-gauge-status" id="gauge-status"></div>
+        <div class="analytics-gauge-sub" id="gauge-sub"></div>
+      </div>
+    </div>
+
+    <div id="categories-section" style="display:none">
+      <div class="section-title">По категориям</div>
+      <div id="categories-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
+    </div>
+
+    <div id="teams-section" style="display:none">
+      <div class="card">
+        <div class="field-label" style="margin-bottom:12px"><span class="field-label-icon">👥</span> По командам</div>
+        <table class="team-table" id="teams-table"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-  const tg = window.Telegram && window.Telegram.WebApp;
-  if (tg) { tg.ready(); tg.expand(); }
+  const tg = (typeof Telegram !== 'undefined' && Telegram.WebApp) ? Telegram.WebApp : null;
+  if (tg) { try { tg.ready(); tg.expand(); } catch(e) {} }
 
   let questionCount = 0;
   let state = { period: 'weekly', participants: 'all' };
 
-  addQuestion();
+  (function() {
+    var p = new URLSearchParams(location.search);
+    if (p.get('screen') === 'analytics') {
+      document.getElementById('screen-create').style.display = 'none';
+      document.getElementById('screen-analytics').style.display = 'block';
+      initAnalytics(p.get('d'));
+    } else {
+      addQuestion();
+    }
+  })();
 
   function addQuestion() {
     questionCount++;
@@ -359,7 +439,8 @@
         '<option value="nps">📊 NPS (0–10)</option>' +
         '<option value="yesno">✅ Да / Нет</option>' +
         '<option value="text">💬 Свободный ответ</option>' +
-      '</select>';
+      '</select>' +
+      '<input type="text" class="field-input question-category" placeholder="Категория (напр. Команда, Руководитель)" style="margin-top:8px">';
     document.getElementById('questions-container').appendChild(div);
   }
 
@@ -390,7 +471,8 @@
     document.querySelectorAll('.question-card').forEach(function(card) {
       var text = card.querySelector('.question-text').value.trim();
       var type = card.querySelector('.question-type').value;
-      if (text) questions.push({ text: text, type: type });
+      var category = card.querySelector('.question-category').value.trim();
+      if (text) questions.push({ text: text, type: type, category: category });
     });
     if (!questions.length) { alert('Добавьте хотя бы один вопрос'); return; }
 
@@ -415,6 +497,91 @@
     } else {
       alert('DEV MODE\n\n' + payload);
     }
+  }
+
+  var _analyticsData = null;
+
+  function _pctTheme(pct) {
+    if (pct >= 80) return { bg:'#D8F3DC', color:'#2D6A4F', stroke:'#52B788' };
+    if (pct >= 60) return { bg:'#FFF3CD', color:'#856404', stroke:'#C9A84C' };
+    return { bg:'#FFE4E4', color:'#C0392B', stroke:'#E05252' };
+  }
+
+  function _pctStatus(pct) {
+    if (pct >= 80) return '👍 Хороший показатель';
+    if (pct >= 60) return '😐 Требует внимания';
+    return '😟 Критично';
+  }
+
+  function _decodeB64(b64url) {
+    var b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    var raw = atob(b64);
+    var arr = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return new TextDecoder().decode(arr);
+  }
+
+  function initAnalytics(b64) {
+    if (!b64) { document.getElementById('gauge-card').innerHTML = '<p style="color:#7A6B5A;text-align:center;padding:20px">Нет данных</p>'; return; }
+    try {
+      _analyticsData = JSON.parse(_decodeB64(b64));
+    } catch(e) {
+      document.getElementById('gauge-card').innerHTML = '<p style="color:#C0392B;text-align:center;padding:20px">Ошибка данных</p>';
+      return;
+    }
+    var sel = document.getElementById('analytics-select');
+    _analyticsData.surveys.forEach(function(s, i) {
+      var opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = s.title;
+      sel.appendChild(opt);
+    });
+    renderSurveyStats();
+  }
+
+  function renderSurveyStats() {
+    if (!_analyticsData) return;
+    var s = _analyticsData.surveys[parseInt(document.getElementById('analytics-select').value)];
+    if (!s) return;
+    var t = _pctTheme(s.overall_pct);
+    var circ = 2 * Math.PI * 56;
+    document.getElementById('gauge-arc').style.strokeDashoffset = circ * (1 - s.overall_pct / 100);
+    document.getElementById('gauge-arc').style.stroke = t.stroke;
+    document.getElementById('gauge-num').textContent = s.overall_pct + '%';
+    document.getElementById('gauge-status').textContent = _pctStatus(s.overall_pct);
+    document.getElementById('gauge-sub').textContent = s.responses_count + ' из ' + s.total_participants + ' ответили (' + s.participation_pct + '%)';
+
+    var catSec = document.getElementById('categories-section');
+    var catGrid = document.getElementById('categories-grid');
+    catGrid.innerHTML = '';
+    if (s.categories && s.categories.length) {
+      catSec.style.display = 'block';
+      s.categories.forEach(function(cat) {
+        var ct = _pctTheme(cat.pct);
+        var card = document.createElement('div');
+        card.className = 'metric-card';
+        card.style.background = ct.bg;
+        card.innerHTML = '<div class="metric-card-name" style="color:' + ct.color + '">' + cat.name + '</div>' +
+          '<div class="metric-card-pct" style="color:' + ct.color + '">' + cat.pct + '%</div>';
+        catGrid.appendChild(card);
+      });
+    } else { catSec.style.display = 'none'; }
+
+    var teamSec = document.getElementById('teams-section');
+    var teamTable = document.getElementById('teams-table');
+    if (s.teams && s.teams.length) {
+      teamSec.style.display = 'block';
+      teamTable.innerHTML = '<tr><th>Команда</th><th>Участие</th><th>Результат</th></tr>';
+      s.teams.forEach(function(team) {
+        var tt = _pctTheme(team.pct);
+        var partPct = team.total > 0 ? Math.round(team.responded / team.total * 100) : 0;
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td style="font-weight:600;color:var(--text)">' + team.name + '</td>' +
+          '<td style="color:var(--text-muted)">' + team.responded + '/' + team.total + ' ' + partPct + '%</td>' +
+          '<td><span class="badge" style="background:' + tt.bg + ';color:' + tt.color + '">' + team.pct + '%</span></td>';
+        teamTable.appendChild(tr);
+      });
+    } else { teamSec.style.display = 'none'; }
   }
 </script>
 
