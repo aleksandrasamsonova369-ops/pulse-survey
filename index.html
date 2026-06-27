@@ -6,252 +6,321 @@
   <title>Пульс Опрос</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
+    :root {
+      --green:        #2D6A4F;
+      --green-light:  #52B788;
+      --green-pale:   #D8F3DC;
+      --brown:        #8B5E3C;
+      --brown-light:  #C9A882;
+      --gold:         #C9A84C;
+      --bg:           #F5F0E8;
+      --surface:      #FFFFFF;
+      --border:       #DDD5C8;
+      --text:         #2C2416;
+      --text-muted:   #7A6B5A;
+      --radius:       14px;
+      --radius-sm:    9px;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--tg-theme-bg-color, #F5F5F5);
-      color: var(--tg-theme-text-color, #1a1a1a);
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       padding-bottom: 90px;
     }
 
-    .screen { display: none; }
-    .screen.active { display: block; }
-
+    /* ── Header ── */
     .page-header {
-      background: #7C4DFF;
+      background: linear-gradient(135deg, var(--green) 0%, #1B4332 100%);
       color: white;
-      padding: 16px 20px;
-      font-size: 18px;
-      font-weight: 600;
+      padding: 18px 20px 14px;
       position: sticky;
       top: 0;
       z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
+    .page-header-icon { font-size: 22px; }
+    .page-header-title { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; }
+    .page-header-sub { font-size: 12px; opacity: 0.75; margin-top: 1px; }
 
+    /* ── Content ── */
     .content { padding: 16px; }
 
+    /* ── Cards ── */
     .card {
-      background: white;
-      border-radius: 12px;
+      background: var(--surface);
+      border-radius: var(--radius);
       padding: 16px;
       margin-bottom: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(45,106,79,0.06);
     }
 
+    /* ── Field labels ── */
     .field-label {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 6px;
-      font-weight: 500;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
+    .field-label-icon { font-size: 14px; }
 
+    /* ── Inputs ── */
     .field-input {
       width: 100%;
-      border: 1.5px solid #E8E8E8;
-      border-radius: 8px;
-      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 13px;
       font-size: 15px;
       outline: none;
-      transition: border-color 0.2s;
-      background: #FAFAFA;
-      color: #1a1a1a;
+      background: #FDFAF6;
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: inherit;
     }
-
-    .field-input:focus { border-color: #7C4DFF; background: white; }
-
-    .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #888;
-      margin: 16px 0 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-
-    .question-card {
+    .field-input:focus {
+      border-color: var(--green-light);
+      box-shadow: 0 0 0 3px rgba(82,183,136,0.15);
       background: white;
-      border-radius: 12px;
+    }
+    .field-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 18px 0 8px;
+    }
+
+    /* ── Question cards ── */
+    .question-card {
+      background: var(--surface);
+      border-radius: var(--radius);
       padding: 14px;
       margin-bottom: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green-light);
+      box-shadow: 0 2px 6px rgba(45,106,79,0.05);
     }
-
     .question-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
     }
-
     .question-number {
-      font-size: 12px;
-      color: #7C4DFF;
-      font-weight: 700;
+      font-size: 11px;
+      color: var(--green);
+      font-weight: 800;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-
     .btn-remove {
       background: none;
       border: none;
-      color: #CCC;
-      font-size: 20px;
+      color: var(--border);
+      font-size: 18px;
       cursor: pointer;
-      line-height: 1;
       padding: 2px 6px;
       border-radius: 6px;
+      transition: all 0.15s;
     }
+    .btn-remove:hover { color: #E05252; background: #FFF0F0; }
 
-    .btn-remove:hover { color: #FF4444; background: #FFF0F0; }
-
+    /* ── Type select ── */
     .type-select {
       width: 100%;
-      border: 1.5px solid #E8E8E8;
-      border-radius: 8px;
-      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 32px 9px 12px;
       font-size: 14px;
       margin-top: 8px;
       outline: none;
-      background: #FAFAFA;
-      color: #333;
+      background: #FDFAF6;
+      color: var(--text);
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%232D6A4F' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
-      padding-right: 32px;
+      font-family: inherit;
+      cursor: pointer;
     }
+    .type-select:focus { border-color: var(--green-light); }
 
-    .type-select:focus { border-color: #7C4DFF; background-color: white; }
-
+    /* ── Add question button ── */
     .btn-add-question {
       width: 100%;
       background: none;
-      border: 2px dashed #C9B8FF;
-      border-radius: 12px;
+      border: 2px dashed var(--green-light);
+      border-radius: var(--radius);
       padding: 13px;
-      color: #7C4DFF;
-      font-size: 15px;
+      color: var(--green);
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       margin-bottom: 4px;
       transition: all 0.2s;
+      font-family: inherit;
     }
+    .btn-add-question:hover { background: var(--green-pale); }
 
-    .btn-add-question:hover { background: #F5F0FF; border-color: #7C4DFF; }
-
-    .period-buttons { display: flex; gap: 8px; }
-
-    .period-btn {
+    /* ── Period buttons ── */
+    .pill-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill-btn {
       flex: 1;
-      padding: 10px 4px;
-      border: 1.5px solid #E8E8E8;
-      border-radius: 8px;
+      min-width: 0;
+      padding: 9px 6px;
+      border: 1.5px solid var(--border);
+      border-radius: 30px;
       background: white;
       font-size: 13px;
       cursor: pointer;
       text-align: center;
-      color: #555;
+      color: var(--text-muted);
       transition: all 0.15s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .pill-btn.active {
+      border-color: var(--green);
+      background: var(--green);
+      color: white;
+      font-weight: 600;
     }
 
-    .period-btn.active {
-      border-color: #7C4DFF;
-      background: #F0EBFF;
-      color: #7C4DFF;
-      font-weight: 700;
+    /* ── Time input ── */
+    input[type="time"].field-input {
+      cursor: pointer;
+      color: var(--green);
+      font-weight: 600;
+      font-size: 18px;
+      padding: 12px 13px;
     }
 
-    .participants-row { display: flex; gap: 10px; margin-bottom: 10px; }
-
+    /* ── Participants ── */
+    .radio-group { display: flex; gap: 8px; }
     .radio-btn {
       flex: 1;
-      padding: 10px;
-      border: 1.5px solid #E8E8E8;
-      border-radius: 8px;
+      padding: 10px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
       background: white;
       font-size: 14px;
       cursor: pointer;
       text-align: center;
-      color: #555;
+      color: var(--text-muted);
       transition: all 0.15s;
+      font-family: inherit;
     }
-
     .radio-btn.active {
-      border-color: #7C4DFF;
-      background: #F0EBFF;
-      color: #7C4DFF;
+      border-color: var(--green);
+      background: var(--green-pale);
+      color: var(--green);
       font-weight: 700;
     }
 
+    /* ── Save bar ── */
     .save-bar {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       padding: 12px 16px;
-      background: white;
-      box-shadow: 0 -2px 12px rgba(0,0,0,0.10);
+      background: var(--bg);
+      border-top: 1px solid var(--border);
     }
-
     .btn-save {
       width: 100%;
-      background: #7C4DFF;
+      background: linear-gradient(135deg, var(--green) 0%, #1B4332 100%);
       color: white;
       border: none;
-      border-radius: 12px;
-      padding: 15px;
+      border-radius: var(--radius);
+      padding: 16px;
       font-size: 16px;
       font-weight: 700;
       cursor: pointer;
       letter-spacing: 0.2px;
-      transition: background 0.15s;
+      transition: opacity 0.15s;
+      font-family: inherit;
+      box-shadow: 0 4px 14px rgba(45,106,79,0.35);
     }
+    .btn-save:active { opacity: 0.85; }
 
-    .btn-save:active { background: #6B3FE7; }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: #999;
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 12px 0;
     }
   </style>
 </head>
 <body>
 
-<!-- SCREEN: CREATE SURVEY -->
-<div id="screen-create" class="screen">
-  <div class="page-header">✏️ Создать опрос</div>
+<div id="screen-create" class="screen active">
+
+  <div class="page-header">
+    <div class="page-header-icon">🌿</div>
+    <div>
+      <div class="page-header-title">Создать опрос</div>
+      <div class="page-header-sub">Пульс-опрос команды</div>
+    </div>
+  </div>
+
   <div class="content">
 
+    <!-- Название -->
     <div class="card">
-      <div class="field-label">Название опроса</div>
+      <div class="field-label"><span class="field-label-icon">📋</span> Название опроса</div>
       <input type="text" id="survey-title" class="field-input"
-             placeholder="Например: Пульс-опрос июль 2026">
+             placeholder="Например: Еженедельный пульс">
     </div>
 
+    <!-- Вопросы -->
     <div class="section-title">Вопросы</div>
     <div id="questions-container"></div>
     <button class="btn-add-question" onclick="addQuestion()">+ Добавить вопрос</button>
 
+    <!-- Периодичность -->
     <div class="card">
-      <div class="field-label">Периодичность</div>
-      <div class="period-buttons">
-        <button class="period-btn active" data-value="weekly"    onclick="selectPeriod(this)">Еженед.</button>
-        <button class="period-btn"        data-value="biweekly"  onclick="selectPeriod(this)">Раз в 2 нед.</button>
-        <button class="period-btn"        data-value="monthly"   onclick="selectPeriod(this)">Ежемес.</button>
+      <div class="field-label"><span class="field-label-icon">🔁</span> Периодичность</div>
+      <div class="pill-group">
+        <button class="pill-btn active" data-value="weekly"   onclick="selectPill(this,'period')">Еженед.</button>
+        <button class="pill-btn"        data-value="biweekly" onclick="selectPill(this,'period')">2 нед.</button>
+        <button class="pill-btn"        data-value="monthly"  onclick="selectPill(this,'period')">Ежемес.</button>
+        <button class="pill-btn"        data-value="once"     onclick="selectPill(this,'period')">Однажды</button>
       </div>
     </div>
 
+    <!-- Время рассылки -->
     <div class="card">
-      <div class="field-label">Участники</div>
-      <div class="participants-row">
-        <button class="radio-btn active" data-value="all"      onclick="selectParticipants(this)">Все</button>
-        <button class="radio-btn"        data-value="specific" onclick="selectParticipants(this)">Выбрать</button>
+      <div class="field-label"><span class="field-label-icon">⏰</span> Время рассылки</div>
+      <input type="time" id="send-time" class="field-input" value="09:00">
+      <div class="field-hint">Вопросы придут участникам в это время по их часовому поясу</div>
+    </div>
+
+    <!-- Участники -->
+    <div class="card">
+      <div class="field-label"><span class="field-label-icon">👥</span> Участники</div>
+      <div class="radio-group" style="margin-bottom:0">
+        <button class="radio-btn active" data-value="all"      onclick="selectPill(this,'participants')">Все в команде</button>
+        <button class="radio-btn"        data-value="specific" onclick="selectPill(this,'participants')">Выбрать</button>
       </div>
-      <div id="participants-input" style="display:none">
+      <div id="participants-input" style="display:none; margin-top:10px">
         <input type="text" id="participants-names" class="field-input"
                placeholder="Имена через запятую: Иван, Мария">
       </div>
@@ -264,47 +333,18 @@
   </div>
 </div>
 
-<!-- SCREEN: DASHBOARD (Phase 2) -->
-<div id="screen-dashboard" class="screen">
-  <div class="page-header">📊 Результаты</div>
-  <div class="content">
-    <div class="empty-state">
-      <div style="font-size:48px; margin-bottom:16px">📊</div>
-      <div style="font-size:18px; font-weight:600; color:#555; margin-bottom:8px">Дашборд скоро здесь</div>
-      <div style="font-size:14px">Аналитика по опросам будет доступна в следующей версии</div>
-    </div>
-  </div>
-</div>
-
 <script>
-  // --- Router ---
-  const params = new URLSearchParams(window.location.search);
-  const screenName = params.get('screen') || 'create';
-
-  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-  const target = document.getElementById('screen-' + screenName);
-  if (target) target.classList.add('active');
-
-  // --- Telegram WebApp init ---
   const tg = window.Telegram && window.Telegram.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
-  }
+  if (tg) { tg.ready(); tg.expand(); }
 
-  // --- State ---
   let questionCount = 0;
-  let selectedPeriod = 'weekly';
-  let selectedParticipants = 'all';
+  let state = { period: 'weekly', participants: 'all' };
 
-  // Start with one question
   addQuestion();
 
-  // --- Functions ---
   function addQuestion() {
     questionCount++;
     const id = questionCount;
-    const container = document.getElementById('questions-container');
     const div = document.createElement('div');
     div.className = 'question-card';
     div.id = 'q-' + id;
@@ -320,33 +360,26 @@
         '<option value="yesno">✅ Да / Нет</option>' +
         '<option value="text">💬 Свободный ответ</option>' +
       '</select>';
-    container.appendChild(div);
+    document.getElementById('questions-container').appendChild(div);
   }
 
   function removeQuestion(id) {
     const el = document.getElementById('q-' + id);
     if (el) el.remove();
-    renumber();
-  }
-
-  function renumber() {
-    document.querySelectorAll('.question-card').forEach(function(card, i) {
-      card.querySelector('.question-number').textContent = 'Вопрос ' + (i + 1);
+    document.querySelectorAll('.question-card').forEach(function(c, i) {
+      c.querySelector('.question-number').textContent = 'Вопрос ' + (i + 1);
     });
   }
 
-  function selectPeriod(btn) {
-    document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
+  function selectPill(btn, group) {
+    const selector = group === 'period' ? '.pill-btn' : '.radio-btn';
+    btn.closest('.card').querySelectorAll(selector).forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
-    selectedPeriod = btn.dataset.value;
-  }
-
-  function selectParticipants(btn) {
-    document.querySelectorAll('.radio-btn').forEach(function(b) { b.classList.remove('active'); });
-    btn.classList.add('active');
-    selectedParticipants = btn.dataset.value;
-    document.getElementById('participants-input').style.display =
-      selectedParticipants === 'specific' ? 'block' : 'none';
+    state[group] = btn.dataset.value;
+    if (group === 'participants') {
+      document.getElementById('participants-input').style.display =
+        state.participants === 'specific' ? 'block' : 'none';
+    }
   }
 
   function saveSurvey() {
@@ -359,26 +392,27 @@
       var type = card.querySelector('.question-type').value;
       if (text) questions.push({ text: text, type: type });
     });
-
-    if (questions.length === 0) { alert('Добавьте хотя бы один вопрос'); return; }
+    if (!questions.length) { alert('Добавьте хотя бы один вопрос'); return; }
 
     var participants = 'all';
-    if (selectedParticipants === 'specific') {
+    if (state.participants === 'specific') {
       participants = document.getElementById('participants-names').value.trim() || 'all';
     }
+
+    var sendTime = document.getElementById('send-time').value || '09:00';
 
     var payload = JSON.stringify({
       action: 'create_survey',
       title: title,
       questions: questions,
-      periodicity: selectedPeriod,
-      participants: participants
+      periodicity: state.period,
+      participants: participants,
+      send_time: sendTime
     });
 
     if (tg) {
       tg.sendData(payload);
     } else {
-      // Dev mode — show result in browser
       alert('DEV MODE\n\n' + payload);
     }
   }
