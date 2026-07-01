@@ -293,6 +293,63 @@
       display:inline-block; font-weight:700; font-size:13px;
       padding:3px 10px; border-radius:20px;
     }
+
+    /* ── Settings ── */
+    .settings-tabs { display:flex; gap:6px; }
+    .settings-tab {
+      flex:1; padding:9px 10px; border:none;
+      border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+      background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.7);
+      font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;
+      transition:all 0.15s;
+    }
+    .settings-tab.active { background:var(--bg); color:var(--green); }
+    .user-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 0; border-bottom:1px solid var(--border); gap:10px;
+    }
+    .user-row:last-child { border-bottom:none; }
+    .user-name { font-size:14px; font-weight:600; color:var(--text); }
+    .user-handle { font-size:12px; color:var(--text-muted); }
+    .role-select {
+      border:1.5px solid var(--border); border-radius:var(--radius-sm);
+      padding:7px 10px; font-size:13px; outline:none; background:#FDFAF6;
+      color:var(--text); font-family:inherit; cursor:pointer; flex-shrink:0;
+    }
+    .role-select.changed { border-color:var(--green-light); background:var(--green-pale); }
+    .survey-settings-card {
+      background:var(--surface); border-radius:var(--radius); margin-bottom:10px;
+      border:1px solid var(--border); box-shadow:0 2px 8px rgba(45,106,79,0.06); overflow:hidden;
+      transition:opacity 0.2s;
+    }
+    .survey-settings-card.deleted { opacity:0.35; pointer-events:none; }
+    .survey-settings-header { padding:14px 16px 10px; }
+    .survey-settings-title { font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px; }
+    .survey-settings-meta {
+      font-size:12px; color:var(--text-muted); display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    }
+    .status-badge {
+      display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700;
+    }
+    .status-badge.active { background:var(--green-pale); color:var(--green); }
+    .status-badge.paused { background:#FFF3CD; color:#856404; }
+    .survey-settings-actions { display:flex; gap:6px; padding:0 16px 14px; }
+    .btn-action {
+      flex:1; padding:8px 4px; border-radius:var(--radius-sm); font-size:12px; font-weight:600;
+      cursor:pointer; font-family:inherit; border:1.5px solid; transition:all 0.15s;
+      text-align:center; background:white;
+    }
+    .btn-action.edit   { border-color:var(--green-light); color:var(--green); }
+    .btn-action.edit:hover   { background:var(--green-pale); }
+    .btn-action.pause  { border-color:var(--gold); color:#856404; }
+    .btn-action.pause:hover  { background:#FFF3CD; }
+    .btn-action.resume { border-color:var(--green-light); color:var(--green); }
+    .btn-action.resume:hover { background:var(--green-pale); }
+    .btn-action.delete { border-color:#E05252; color:#C0392B; }
+    .btn-action.delete:hover { background:#FFF0F0; }
+    .survey-edit-form {
+      display:none; border-top:1px solid var(--border); padding:14px 16px; background:#FDFAF6;
+    }
   </style>
 </head>
 <body style="background:#F5F0E8;">
@@ -404,6 +461,31 @@
   </div>
 </div>
 
+<div id="screen-settings" style="display:none">
+  <div class="page-header" style="flex-direction:column;align-items:stretch;padding-bottom:0">
+    <div style="display:flex;align-items:center;gap:10px;padding-bottom:12px">
+      <div class="page-header-icon">&#9881;</div>
+      <div>
+        <div class="page-header-title">Настройки</div>
+        <div class="page-header-sub">Пользователи и опросы</div>
+      </div>
+    </div>
+    <div class="settings-tabs">
+      <button class="settings-tab active" data-tab="users" onclick="switchTab('users')">Пользователи</button>
+      <button class="settings-tab" data-tab="surveys" onclick="switchTab('surveys')">Опросы</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="tab-users"></div>
+    <div id="tab-surveys" style="display:none"></div>
+  </div>
+
+  <div class="save-bar">
+    <button class="btn-save" id="btn-settings-save" onclick="saveSettings()" style="opacity:0.4;pointer-events:none">Сохранить изменения</button>
+  </div>
+</div>
+
 <script>
   const tg = (typeof Telegram !== 'undefined' && Telegram.WebApp) ? Telegram.WebApp : null;
   if (tg) { try { tg.ready(); tg.expand(); } catch(e) {} }
@@ -413,10 +495,15 @@
 
   (function() {
     var p = new URLSearchParams(location.search);
-    if (p.get('screen') === 'analytics') {
+    var screen = p.get('screen');
+    if (screen === 'analytics') {
       document.getElementById('screen-create').style.display = 'none';
       document.getElementById('screen-analytics').style.display = 'block';
       initAnalytics(p.get('d'));
+    } else if (screen === 'settings') {
+      document.getElementById('screen-create').style.display = 'none';
+      document.getElementById('screen-settings').style.display = 'block';
+      initSettings(p.get('d'));
     } else {
       addQuestion();
     }
@@ -582,6 +669,214 @@
         teamTable.appendChild(tr);
       });
     } else { teamSec.style.display = 'none'; }
+  }
+
+  // ── Settings ──
+  var _settingsData = null;
+  var _roleChanges = {};
+  var _surveyStatusChanges = {};
+  var _surveyEditData = {};
+  var _surveyDeletes = {};
+  var _freqLabels = { weekly:'Еженедельно', biweekly:'Раз в 2 нед.', monthly:'Ежемесячно', once:'Однажды' };
+  var _freqShort  = { weekly:'Еженед.', biweekly:'2 нед.', monthly:'Ежемес.', once:'Однажды' };
+
+  function _escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function initSettings(b64) {
+    if (!b64) return;
+    try { _settingsData = JSON.parse(_decodeB64(b64)); } catch(e) { return; }
+    renderUsers();
+    renderSurveys();
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.settings-tab').forEach(function(t) {
+      t.classList.toggle('active', t.dataset.tab === tab);
+    });
+    document.getElementById('tab-users').style.display   = tab === 'users'   ? 'block' : 'none';
+    document.getElementById('tab-surveys').style.display = tab === 'surveys' ? 'block' : 'none';
+  }
+
+  function renderUsers() {
+    var el = document.getElementById('tab-users');
+    var users = (_settingsData && _settingsData.users) || [];
+    if (!users.length) {
+      el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:30px 0">Нет пользователей</p>';
+      return;
+    }
+    var roles = ['admin','руководитель','сотрудник','наблюдатель'];
+    var rows = users.map(function(u) {
+      var opts = roles.map(function(r) {
+        return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + r + '</option>';
+      }).join('');
+      return '<div class="user-row">' +
+        '<div><div class="user-name">' + _escHtml(u.name) + '</div>' +
+        (u.username ? '<div class="user-handle">@' + _escHtml(u.username) + '</div>' : '') + '</div>' +
+        '<select class="role-select" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.role) + '" onchange="onRoleChange(this)">' + opts + '</select>' +
+      '</div>';
+    }).join('');
+    el.innerHTML = '<div class="card">' + rows + '</div>';
+  }
+
+  function onRoleChange(sel) {
+    var tid = String(sel.dataset.tid);
+    if (sel.value !== sel.dataset.orig) {
+      _roleChanges[tid] = sel.value;
+      sel.classList.add('changed');
+    } else {
+      delete _roleChanges[tid];
+      sel.classList.remove('changed');
+    }
+    updateSaveBtn();
+  }
+
+  function renderSurveys() {
+    var el = document.getElementById('tab-surveys');
+    var surveys = (_settingsData && _settingsData.surveys) || [];
+    if (!surveys.length) {
+      el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:30px 0">Нет опросов</p>';
+      return;
+    }
+    el.innerHTML = '';
+    surveys.forEach(function(s) {
+      var isPaused = s.status === 'paused';
+      var card = document.createElement('div');
+      card.className = 'survey-settings-card';
+      card.id = 'sc-' + s.id;
+      card.dataset.status = s.status;
+      card.innerHTML =
+        '<div class="survey-settings-header">' +
+          '<div class="survey-settings-title" id="stitle-' + s.id + '">' + _escHtml(s.title) + '</div>' +
+          '<div class="survey-settings-meta">' +
+            '<span>' + (_freqLabels[s.frequency] || s.frequency) + '</span>' +
+            '<span>&bull;</span><span>' + s.send_time + '</span>' +
+            '<span class="status-badge ' + (isPaused ? 'paused' : 'active') + '" id="sbadge-' + s.id + '">' + (isPaused ? 'На паузе' : 'Активен') + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="survey-settings-actions">' +
+          '<button type="button" class="btn-action edit" onclick="toggleEditForm(\'' + s.id + '\')">Редактировать</button>' +
+          '<button type="button" class="btn-action ' + (isPaused ? 'resume' : 'pause') + '" id="spause-' + s.id + '" onclick="togglePause(\'' + s.id + '\')">' + (isPaused ? 'Возобновить' : 'Пауза') + '</button>' +
+          '<button type="button" class="btn-action delete" onclick="deleteSurvey(\'' + s.id + '\')">Удалить</button>' +
+        '</div>' +
+        '<div class="survey-edit-form" id="sedit-' + s.id + '">' + buildEditForm(s) + '</div>';
+      el.appendChild(card);
+    });
+  }
+
+  function buildEditForm(s) {
+    var freqs = ['weekly','biweekly','monthly','once'];
+    var typeLabels = { scale:'Шкала (1-5)', nps:'NPS (0-10)', yesno:'Да / Нет', text:'Свободный ответ' };
+    var qHtml = (s.questions || []).map(function(q) {
+      var typeOpts = ['scale','nps','yesno','text'].map(function(t) {
+        return '<option value="' + t + '"' + (q.type === t ? ' selected' : '') + '>' + typeLabels[t] + '</option>';
+      }).join('');
+      return '<div style="margin-bottom:8px">' +
+        '<input type="text" class="field-input ef-q-text" value="' + _escHtml(q.text) + '" placeholder="Текст вопроса" style="margin-bottom:5px">' +
+        '<select class="type-select ef-q-type" style="margin-top:0">' + typeOpts + '</select>' +
+        '<input type="text" class="field-input ef-q-cat" value="' + _escHtml(q.category || '') + '" placeholder="Категория" style="margin-top:5px">' +
+      '</div>';
+    }).join('');
+    var pillHtml = freqs.map(function(f) {
+      return '<button type="button" class="pill-btn' + (s.frequency === f ? ' active' : '') + '" data-value="' + f + '" onclick="selectEditPill(this)">' + _freqShort[f] + '</button>';
+    }).join('');
+    return '<div class="field-label" style="margin-bottom:6px">Название</div>' +
+      '<input type="text" class="field-input ef-title" value="' + _escHtml(s.title) + '" style="margin-bottom:12px">' +
+      '<div class="field-label" style="margin-bottom:6px">Вопросы</div>' +
+      '<div class="ef-questions">' + qHtml + '</div>' +
+      '<div class="field-label" style="margin:10px 0 6px">Периодичность</div>' +
+      '<div class="pill-group" style="margin-bottom:12px">' + pillHtml + '</div>' +
+      '<div class="field-label" style="margin-bottom:6px">Время рассылки</div>' +
+      '<input type="time" class="field-input ef-time" value="' + s.send_time + '" style="margin-bottom:14px">' +
+      '<button type="button" class="btn-save" style="font-size:14px;padding:12px;box-shadow:none" onclick="saveEditForm(\'' + s.id + '\')">Сохранить изменения</button>';
+  }
+
+  function selectEditPill(btn) {
+    btn.closest('.pill-group').querySelectorAll('.pill-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+  }
+
+  function toggleEditForm(id) {
+    var f = document.getElementById('sedit-' + id);
+    f.style.display = f.style.display === 'block' ? 'none' : 'block';
+  }
+
+  function togglePause(id) {
+    var card = document.getElementById('sc-' + id);
+    var curStatus = card.dataset.status;
+    var newStatus = curStatus === 'paused' ? 'active' : 'paused';
+    var orig = ((_settingsData.surveys || []).find(function(x) { return x.id === id; }) || {}).status || 'active';
+    card.dataset.status = newStatus;
+    var badge = document.getElementById('sbadge-' + id);
+    badge.className = 'status-badge ' + (newStatus === 'active' ? 'active' : 'paused');
+    badge.textContent = newStatus === 'active' ? 'Активен' : 'На паузе';
+    var btn = document.getElementById('spause-' + id);
+    btn.className = 'btn-action ' + (newStatus === 'paused' ? 'pause' : 'resume');
+    btn.textContent = newStatus === 'paused' ? 'Пауза' : 'Возобновить';
+    if (newStatus === orig) { delete _surveyStatusChanges[id]; } else { _surveyStatusChanges[id] = newStatus; }
+    updateSaveBtn();
+  }
+
+  function deleteSurvey(id) {
+    var s = (_settingsData.surveys || []).find(function(x) { return x.id === id; });
+    if (!confirm('Удалить опрос "' + (s ? s.title : id) + '"?\nЭто действие нельзя отменить.')) return;
+    _surveyDeletes[id] = true;
+    delete _surveyStatusChanges[id];
+    delete _surveyEditData[id];
+    document.getElementById('sc-' + id).classList.add('deleted');
+    updateSaveBtn();
+  }
+
+  function saveEditForm(id) {
+    var form = document.getElementById('sedit-' + id);
+    var title = form.querySelector('.ef-title').value.trim();
+    if (!title) { alert('Введите название'); return; }
+    var activeFreq = form.querySelector('.pill-btn.active');
+    var frequency = activeFreq ? activeFreq.dataset.value : 'weekly';
+    var sendTime = form.querySelector('.ef-time').value || '09:00';
+    var questions = [];
+    form.querySelectorAll('.ef-questions > div').forEach(function(qEl) {
+      var text = qEl.querySelector('.ef-q-text').value.trim();
+      if (text) questions.push({ text: text, type: qEl.querySelector('.ef-q-type').value, category: qEl.querySelector('.ef-q-cat').value.trim() });
+    });
+    _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions };
+    document.getElementById('stitle-' + id).textContent = title;
+    form.style.display = 'none';
+    updateSaveBtn();
+  }
+
+  function updateSaveBtn() {
+    var hasChanges = Object.keys(_roleChanges).length > 0 ||
+      Object.keys(_surveyStatusChanges).length > 0 ||
+      Object.keys(_surveyEditData).length > 0 ||
+      Object.keys(_surveyDeletes).length > 0;
+    var btn = document.getElementById('btn-settings-save');
+    if (btn) { btn.style.opacity = hasChanges ? '1' : '0.4'; btn.style.pointerEvents = hasChanges ? 'auto' : 'none'; }
+  }
+
+  function saveSettings() {
+    var roleChangesList = Object.keys(_roleChanges).map(function(tid) {
+      return { telegram_id: parseInt(tid, 10), new_role: _roleChanges[tid] };
+    });
+    var surveyChangesList = [];
+    Object.keys(_surveyDeletes).forEach(function(id) {
+      surveyChangesList.push({ id: id, op: 'delete' });
+    });
+    Object.keys(_surveyEditData).forEach(function(id) {
+      if (!_surveyDeletes[id]) {
+        var entry = { id: id, op: 'edit', title: _surveyEditData[id].title, frequency: _surveyEditData[id].frequency, send_time: _surveyEditData[id].send_time, questions: _surveyEditData[id].questions };
+        if (_surveyStatusChanges[id]) entry.status = _surveyStatusChanges[id];
+        surveyChangesList.push(entry);
+      }
+    });
+    Object.keys(_surveyStatusChanges).forEach(function(id) {
+      if (!_surveyDeletes[id] && !_surveyEditData[id]) {
+        surveyChangesList.push({ id: id, op: _surveyStatusChanges[id] === 'paused' ? 'pause' : 'resume' });
+      }
+    });
+    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, survey_changes: surveyChangesList });
+    if (tg) { tg.sendData(payload); } else { alert('DEV MODE\n\n' + payload); }
   }
 </script>
 
