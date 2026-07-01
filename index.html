@@ -493,22 +493,6 @@
   let questionCount = 0;
   let state = { period: 'weekly', participants: 'all' };
 
-  (function() {
-    var p = new URLSearchParams(location.search);
-    var screen = p.get('screen');
-    if (screen === 'analytics') {
-      document.getElementById('screen-create').style.display = 'none';
-      document.getElementById('screen-analytics').style.display = 'block';
-      initAnalytics(p.get('d'));
-    } else if (screen === 'settings') {
-      document.getElementById('screen-create').style.display = 'none';
-      document.getElementById('screen-settings').style.display = 'block';
-      initSettings(p.get('d'));
-    } else {
-      addQuestion();
-    }
-  })();
-
   function addQuestion() {
     questionCount++;
     const id = questionCount;
@@ -878,7 +862,25 @@
     var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, survey_changes: surveyChangesList });
     if (tg) { tg.sendData(payload); } else { alert('DEV MODE\n\n' + payload); }
   }
+
+  (function() {
+    var p = new URLSearchParams(location.search);
+    var screen = p.get('screen');
+    if (screen === 'analytics') {
+      document.getElementById('screen-create').style.display = 'none';
+      document.getElementById('screen-analytics').style.display = 'block';
+      initAnalytics(p.get('d'));
+    } else if (screen === 'settings') {
+      document.getElementById('screen-create').style.display = 'none';
+      document.getElementById('screen-settings').style.display = 'block';
+      initSettings(p.get('d'));
+    } else {
+      addQuestion();
+    }
+  })();
 </script>
 
 </body>
 </html>
+
+  
