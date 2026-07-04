@@ -385,8 +385,23 @@
         <button class="pill-btn active" data-value="weekly"   onclick="selectPill(this,'period')">Еженед.</button>
         <button class="pill-btn"        data-value="biweekly" onclick="selectPill(this,'period')">2 нед.</button>
         <button class="pill-btn"        data-value="monthly"  onclick="selectPill(this,'period')">Ежемес.</button>
-        <button class="pill-btn"        data-value="once"     onclick="selectPill(this,'period')">Однажды</button>
+        <button class="pill-btn"        data-value="once"     onclick="selectPill(this,'period')">Ежедневно</button>
       </div>
+    </div>
+
+    <!-- День недели / число месяца -->
+    <div class="card" id="schedule-day-card" style="display:none">
+      <div class="field-label"><span class="field-label-icon">📅</span> День отправки</div>
+      <div class="pill-group" id="schedule-day-weekday">
+        <button class="pill-btn" data-value="1" onclick="selectScheduleDay(this)">Пн</button>
+        <button class="pill-btn" data-value="2" onclick="selectScheduleDay(this)">Вт</button>
+        <button class="pill-btn" data-value="3" onclick="selectScheduleDay(this)">Ср</button>
+        <button class="pill-btn" data-value="4" onclick="selectScheduleDay(this)">Чт</button>
+        <button class="pill-btn" data-value="5" onclick="selectScheduleDay(this)">Пт</button>
+        <button class="pill-btn" data-value="6" onclick="selectScheduleDay(this)">Сб</button>
+        <button class="pill-btn" data-value="7" onclick="selectScheduleDay(this)">Вс</button>
+      </div>
+      <input type="number" id="schedule-day-monthday" class="field-input" min="1" max="31" placeholder="Число месяца (1-31)" style="display:none">
     </div>
 
     <!-- Время рассылки -->
@@ -491,7 +506,30 @@
   if (tg) { try { tg.ready(); tg.expand(); } catch(e) {} }
 
   let questionCount = 0;
-  let state = { period: 'weekly', participants: 'all' };
+  let state = { period: 'weekly', participants: 'all', scheduleDay: '' };
+
+  function selectScheduleDay(btn) {
+    btn.closest('.pill-group').querySelectorAll('.pill-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    state.scheduleDay = btn.dataset.value;
+  }
+
+  function updateScheduleDayVisibility() {
+    var card = document.getElementById('schedule-day-card');
+    var weekdayGroup = document.getElementById('schedule-day-weekday');
+    var monthInput = document.getElementById('schedule-day-monthday');
+    if (state.period === 'weekly' || state.period === 'biweekly') {
+      card.style.display = 'block';
+      weekdayGroup.style.display = 'flex';
+      monthInput.style.display = 'none';
+    } else if (state.period === 'monthly') {
+      card.style.display = 'block';
+      weekdayGroup.style.display = 'none';
+      monthInput.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  }
 
   function addQuestion() {
     questionCount++;
@@ -532,6 +570,9 @@
       document.getElementById('participants-input').style.display =
         state.participants === 'specific' ? 'block' : 'none';
     }
+    if (group === 'period') {
+      updateScheduleDayVisibility();
+    }
   }
 
   function saveSurvey() {
@@ -554,13 +595,29 @@
 
     var sendTime = document.getElementById('send-time').value || '09:00';
 
+    var scheduleDay = '';
+    if (state.period === 'weekly' || state.period === 'biweekly') {
+      scheduleDay = state.scheduleDay;
+    } else if (state.period === 'monthly') {
+      scheduleDay = document.getElementById('schedule-day-monthday').value || '';
+    }
+    if ((state.period === 'weekly' || state.period === 'biweekly') && !scheduleDay) {
+      alert('Выберите день недели для рассылки');
+      return;
+    }
+    if (state.period === 'monthly' && !scheduleDay) {
+      alert('Укажите число месяца для рассылки');
+      return;
+    }
+
     var payload = JSON.stringify({
       action: 'create_survey',
       title: title,
       questions: questions,
       periodicity: state.period,
       participants: participants,
-      send_time: sendTime
+      send_time: sendTime,
+      schedule_day: scheduleDay
     });
 
     if (tg) {
@@ -661,8 +718,8 @@
   var _surveyStatusChanges = {};
   var _surveyEditData = {};
   var _surveyDeletes = {};
-  var _freqLabels = { weekly:'Еженедельно', biweekly:'Раз в 2 нед.', monthly:'Ежемесячно', once:'Однажды' };
-  var _freqShort  = { weekly:'Еженед.', biweekly:'2 нед.', monthly:'Ежемес.', once:'Однажды' };
+  var _freqLabels = { weekly:'Еженедельно', biweekly:'Раз в 2 нед.', monthly:'Ежемесячно', once:'Ежедневно' };
+  var _freqShort  = { weekly:'Еженед.', biweekly:'2 нед.', monthly:'Ежемес.', once:'Ежедневно' };
 
   function _escHtml(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -765,18 +822,41 @@
     var pillHtml = freqs.map(function(f) {
       return '<button type="button" class="pill-btn' + (s.frequency === f ? ' active' : '') + '" data-value="' + f + '" onclick="selectEditPill(this)">' + _freqShort[f] + '</button>';
     }).join('');
+    var isWeekly = s.frequency === 'weekly' || s.frequency === 'biweekly';
+    var isMonthly = s.frequency === 'monthly';
+    var weekdayBtns = [1,2,3,4,5,6,7].map(function(n) {
+      var labels = {1:'Пн',2:'Вт',3:'Ср',4:'Чт',5:'Пт',6:'Сб',7:'Вс'};
+      return '<button type="button" class="pill-btn' + (String(s.schedule_day) === String(n) ? ' active' : '') + '" data-value="' + n + '" onclick="selectEditScheduleDay(this)">' + labels[n] + '</button>';
+    }).join('');
+    var scheduleDayHtml =
+      '<div class="field-label ef-schedule-label" style="margin:10px 0 6px;' + (isWeekly || isMonthly ? '' : 'display:none') + '">День отправки</div>' +
+      '<div class="pill-group ef-schedule-weekday" style="margin-bottom:14px;' + (isWeekly ? '' : 'display:none') + '">' + weekdayBtns + '</div>' +
+      '<input type="number" class="field-input ef-schedule-monthday" min="1" max="31" value="' + (isMonthly ? _escHtml(s.schedule_day || '') : '') + '" placeholder="Число месяца (1-31)" style="margin-bottom:14px;' + (isMonthly ? '' : 'display:none') + '">';
     return '<div class="field-label" style="margin-bottom:6px">Название</div>' +
       '<input type="text" class="field-input ef-title" value="' + _escHtml(s.title) + '" style="margin-bottom:12px">' +
       '<div class="field-label" style="margin-bottom:6px">Вопросы</div>' +
       '<div class="ef-questions">' + qHtml + '</div>' +
       '<div class="field-label" style="margin:10px 0 6px">Периодичность</div>' +
       '<div class="pill-group" style="margin-bottom:12px">' + pillHtml + '</div>' +
+      scheduleDayHtml +
       '<div class="field-label" style="margin-bottom:6px">Время рассылки</div>' +
       '<input type="time" class="field-input ef-time" value="' + s.send_time + '" style="margin-bottom:14px">' +
       '<button type="button" class="btn-save" style="font-size:14px;padding:12px;box-shadow:none" onclick="saveEditForm(\'' + s.id + '\')">Сохранить изменения</button>';
   }
 
   function selectEditPill(btn) {
+    btn.closest('.pill-group').querySelectorAll('.pill-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var form = btn.closest('.survey-edit-form');
+    var freq = btn.dataset.value;
+    var isWeekly = freq === 'weekly' || freq === 'biweekly';
+    var isMonthly = freq === 'monthly';
+    form.querySelector('.ef-schedule-label').style.display = (isWeekly || isMonthly) ? '' : 'none';
+    form.querySelector('.ef-schedule-weekday').style.display = isWeekly ? 'flex' : 'none';
+    form.querySelector('.ef-schedule-monthday').style.display = isMonthly ? 'block' : 'none';
+  }
+
+  function selectEditScheduleDay(btn) {
     btn.closest('.pill-group').querySelectorAll('.pill-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
   }
@@ -804,19 +884,27 @@
 
   function deleteSurvey(id) {
     var s = (_settingsData.surveys || []).find(function(x) { return x.id === id; });
-    if (!confirm('Удалить опрос "' + (s ? s.title : id) + '"?\nЭто действие нельзя отменить.')) return;
-    _surveyDeletes[id] = true;
-    delete _surveyStatusChanges[id];
-    delete _surveyEditData[id];
-    document.getElementById('sc-' + id).classList.add('deleted');
-    updateSaveBtn();
+    var msg = 'Удалить опрос "' + (s ? s.title : id) + '"?\nЭто действие нельзя отменить.';
+    function applyDelete() {
+      _surveyDeletes[id] = true;
+      delete _surveyStatusChanges[id];
+      delete _surveyEditData[id];
+      document.getElementById('sc-' + id).classList.add('deleted');
+      updateSaveBtn();
+    }
+    if (tg && tg.showConfirm) {
+      tg.showConfirm(msg, function(confirmed) { if (confirmed) applyDelete(); });
+      return;
+    }
+    if (!confirm(msg)) return;
+    applyDelete();
   }
 
   function saveEditForm(id) {
     var form = document.getElementById('sedit-' + id);
     var title = form.querySelector('.ef-title').value.trim();
     if (!title) { alert('Введите название'); return; }
-    var activeFreq = form.querySelector('.pill-btn.active');
+    var activeFreq = form.querySelector('.pill-group:not(.ef-schedule-weekday) .pill-btn.active');
     var frequency = activeFreq ? activeFreq.dataset.value : 'weekly';
     var sendTime = form.querySelector('.ef-time').value || '09:00';
     var questions = [];
@@ -824,7 +912,14 @@
       var text = qEl.querySelector('.ef-q-text').value.trim();
       if (text) questions.push({ text: text, type: qEl.querySelector('.ef-q-type').value, category: qEl.querySelector('.ef-q-cat').value.trim() });
     });
-    _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions };
+    var scheduleDay = '';
+    if (frequency === 'weekly' || frequency === 'biweekly') {
+      var activeDay = form.querySelector('.ef-schedule-weekday .pill-btn.active');
+      scheduleDay = activeDay ? activeDay.dataset.value : '';
+    } else if (frequency === 'monthly') {
+      scheduleDay = form.querySelector('.ef-schedule-monthday').value || '';
+    }
+    _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions, schedule_day: scheduleDay };
     document.getElementById('stitle-' + id).textContent = title;
     form.style.display = 'none';
     updateSaveBtn();
@@ -849,7 +944,7 @@
     });
     Object.keys(_surveyEditData).forEach(function(id) {
       if (!_surveyDeletes[id]) {
-        var entry = { id: id, op: 'edit', title: _surveyEditData[id].title, frequency: _surveyEditData[id].frequency, send_time: _surveyEditData[id].send_time, questions: _surveyEditData[id].questions };
+        var entry = { id: id, op: 'edit', title: _surveyEditData[id].title, frequency: _surveyEditData[id].frequency, send_time: _surveyEditData[id].send_time, questions: _surveyEditData[id].questions, schedule_day: _surveyEditData[id].schedule_day };
         if (_surveyStatusChanges[id]) entry.status = _surveyStatusChanges[id];
         surveyChangesList.push(entry);
       }
@@ -876,12 +971,10 @@
       initSettings(p.get('d'));
     } else {
       addQuestion();
+      updateScheduleDayVisibility();
     }
   })();
 </script>
 
 </body>
 </html>
-
-
-  
