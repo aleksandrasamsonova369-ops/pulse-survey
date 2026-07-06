@@ -236,6 +236,13 @@
       font-weight: 700;
     }
 
+    .check-list { max-height:260px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); }
+    .check-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .check-row:last-child { border-bottom:none; }
+    .check-row input[type="checkbox"] { width:18px; height:18px; accent-color:var(--green); flex-shrink:0; }
+    .check-row-name { font-size:14px; font-weight:600; color:var(--text); }
+    .check-row-handle { font-size:12px; color:var(--text-muted); }
+
     /* ── Save bar ── */
     .save-bar {
       position: fixed;
@@ -317,6 +324,7 @@
       color:var(--text); font-family:inherit; cursor:pointer; flex-shrink:0;
     }
     .role-select.changed { border-color:var(--green-light); background:var(--green-pale); }
+    .field-input.changed { border-color:var(--green-light); background:var(--green-pale); }
     .survey-settings-card {
       background:var(--surface); border-radius:var(--radius); margin-bottom:10px;
       border:1px solid var(--border); box-shadow:0 2px 8px rgba(45,106,79,0.06); overflow:hidden;
@@ -419,8 +427,7 @@
         <button class="radio-btn"        data-value="specific" onclick="selectPill(this,'participants')">Выбрать</button>
       </div>
       <div id="participants-input" style="display:none; margin-top:10px">
-        <input type="text" id="participants-names" class="field-input"
-               placeholder="Имена через запятую: Иван, Мария">
+        <div id="participants-checklist" class="check-list"></div>
       </div>
     </div>
 
@@ -508,6 +515,33 @@
   let questionCount = 0;
   let state = { period: 'weekly', participants: 'all', scheduleDay: '' };
 
+  var _createUsers = [];
+
+  function _buildCheckList(containerId, users, selectedIds) {
+    var el = document.getElementById(containerId);
+    var sel = (selectedIds || []).map(String);
+    if (!users.length) { el.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:13px">Нет пользователей</div>'; return; }
+    el.innerHTML = users.map(function(u) {
+      var checked = sel.indexOf(String(u.telegram_id)) !== -1 ? ' checked' : '';
+      return '<label class="check-row">' +
+        '<input type="checkbox" value="' + u.telegram_id + '"' + checked + '>' +
+        '<span><div class="check-row-name">' + _escHtml(u.name) + '</div>' +
+        (u.username ? '<div class="check-row-handle">@' + _escHtml(u.username) + '</div>' : '') + '</span>' +
+      '</label>';
+    }).join('');
+  }
+
+  function _getCheckedIds(containerId) {
+    var boxes = document.querySelectorAll('#' + containerId + ' input[type="checkbox"]:checked');
+    return Array.prototype.map.call(boxes, function(b) { return b.value; });
+  }
+
+  function initCreate(b64) {
+    if (!b64) { _createUsers = []; return; }
+    try { _createUsers = JSON.parse(_decodeB64(b64)); } catch (e) { _createUsers = []; }
+    _buildCheckList('participants-checklist', _createUsers, []);
+  }
+
   function selectScheduleDay(btn) {
     btn.closest('.pill-group').querySelectorAll('.pill-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
@@ -590,7 +624,8 @@
 
     var participants = 'all';
     if (state.participants === 'specific') {
-      participants = document.getElementById('participants-names').value.trim() || 'all';
+      var checkedIds = _getCheckedIds('participants-checklist');
+      participants = checkedIds.length ? checkedIds.join(',') : 'all';
     }
 
     var sendTime = document.getElementById('send-time').value || '09:00';
@@ -715,6 +750,7 @@
   // ── Settings ──
   var _settingsData = null;
   var _roleChanges = {};
+  var _teamChanges = {};
   var _surveyStatusChanges = {};
   var _surveyEditData = {};
   var _surveyDeletes = {};
@@ -755,6 +791,7 @@
       return '<div class="user-row">' +
         '<div><div class="user-name">' + _escHtml(u.name) + '</div>' +
         (u.username ? '<div class="user-handle">@' + _escHtml(u.username) + '</div>' : '') + '</div>' +
+        '<input type="text" class="field-input team-input" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.team || '') + '" value="' + _escHtml(u.team || '') + '" placeholder="Команда" style="width:100px;flex-shrink:0;padding:7px 10px;font-size:13px" oninput="onTeamChange(this)">' +
         '<select class="role-select" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.role) + '" onchange="onRoleChange(this)">' + opts + '</select>' +
       '</div>';
     }).join('');
@@ -770,6 +807,13 @@
       delete _roleChanges[tid];
       sel.classList.remove('changed');
     }
+    updateSaveBtn();
+  }
+
+  function onTeamChange(inp) {
+    var tid = String(inp.dataset.tid);
+    if (inp.value !== inp.dataset.orig) { _teamChanges[tid] = inp.value; inp.classList.add('changed'); }
+    else { delete _teamChanges[tid]; inp.classList.remove('changed'); }
     updateSaveBtn();
   }
 
@@ -803,6 +847,8 @@
         '</div>' +
         '<div class="survey-edit-form" id="sedit-' + s.id + '">' + buildEditForm(s) + '</div>';
       el.appendChild(card);
+      var selIds = (s.participants && s.participants !== 'all') ? s.participants.split(',') : [];
+      _buildCheckList('ef-participants-' + s.id, (_settingsData.users || []), selIds);
     });
   }
 
@@ -832,6 +878,14 @@
       '<div class="field-label ef-schedule-label" style="margin:10px 0 6px;' + (isWeekly || isMonthly ? '' : 'display:none') + '">День отправки</div>' +
       '<div class="pill-group ef-schedule-weekday" style="margin-bottom:14px;' + (isWeekly ? '' : 'display:none') + '">' + weekdayBtns + '</div>' +
       '<input type="number" class="field-input ef-schedule-monthday" min="1" max="31" value="' + (isMonthly ? _escHtml(s.schedule_day || '') : '') + '" placeholder="Число месяца (1-31)" style="margin-bottom:14px;' + (isMonthly ? '' : 'display:none') + '">';
+    var isAllParticipants = !s.participants || s.participants === 'all';
+    var participantsHtml =
+      '<div class="field-label" style="margin:10px 0 6px">Участники</div>' +
+      '<div class="radio-group ef-participants-mode" style="margin-bottom:10px">' +
+        '<button type="button" class="radio-btn' + (isAllParticipants ? ' active' : '') + '" data-value="all" onclick="selectEditParticipantsMode(this)">Все в команде</button>' +
+        '<button type="button" class="radio-btn' + (isAllParticipants ? '' : ' active') + '" data-value="specific" onclick="selectEditParticipantsMode(this)">Выбрать</button>' +
+      '</div>' +
+      '<div class="ef-participants-checklist check-list" id="ef-participants-' + s.id + '" style="display:' + (isAllParticipants ? 'none' : 'block') + ';margin-bottom:14px"></div>';
     return '<div class="field-label" style="margin-bottom:6px">Название</div>' +
       '<input type="text" class="field-input ef-title" value="' + _escHtml(s.title) + '" style="margin-bottom:12px">' +
       '<div class="field-label" style="margin-bottom:6px">Вопросы</div>' +
@@ -839,6 +893,7 @@
       '<div class="field-label" style="margin:10px 0 6px">Периодичность</div>' +
       '<div class="pill-group" style="margin-bottom:12px">' + pillHtml + '</div>' +
       scheduleDayHtml +
+      participantsHtml +
       '<div class="field-label" style="margin-bottom:6px">Время рассылки</div>' +
       '<input type="time" class="field-input ef-time" value="' + s.send_time + '" style="margin-bottom:14px">' +
       '<button type="button" class="btn-save" style="font-size:14px;padding:12px;box-shadow:none" onclick="saveEditForm(\'' + s.id + '\')">Сохранить изменения</button>';
@@ -859,6 +914,13 @@
   function selectEditScheduleDay(btn) {
     btn.closest('.pill-group').querySelectorAll('.pill-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
+  }
+
+  function selectEditParticipantsMode(btn) {
+    btn.closest('.radio-group').querySelectorAll('.radio-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var form = btn.closest('.survey-edit-form');
+    form.querySelector('.ef-participants-checklist').style.display = btn.dataset.value === 'specific' ? 'block' : 'none';
   }
 
   function toggleEditForm(id) {
@@ -919,7 +981,13 @@
     } else if (frequency === 'monthly') {
       scheduleDay = form.querySelector('.ef-schedule-monthday').value || '';
     }
-    _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions, schedule_day: scheduleDay };
+    var participantsModeBtn = form.querySelector('.ef-participants-mode .radio-btn.active');
+    var participants = 'all';
+    if (participantsModeBtn && participantsModeBtn.dataset.value === 'specific') {
+      var checkedIds = _getCheckedIds('ef-participants-' + id);
+      participants = checkedIds.length ? checkedIds.join(',') : 'all';
+    }
+    _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions, schedule_day: scheduleDay, participants: participants };
     document.getElementById('stitle-' + id).textContent = title;
     form.style.display = 'none';
     updateSaveBtn();
@@ -927,6 +995,7 @@
 
   function updateSaveBtn() {
     var hasChanges = Object.keys(_roleChanges).length > 0 ||
+      Object.keys(_teamChanges).length > 0 ||
       Object.keys(_surveyStatusChanges).length > 0 ||
       Object.keys(_surveyEditData).length > 0 ||
       Object.keys(_surveyDeletes).length > 0;
@@ -938,13 +1007,16 @@
     var roleChangesList = Object.keys(_roleChanges).map(function(tid) {
       return { telegram_id: parseInt(tid, 10), new_role: _roleChanges[tid] };
     });
+    var teamChangesList = Object.keys(_teamChanges).map(function(tid) {
+      return { telegram_id: parseInt(tid, 10), team: _teamChanges[tid] };
+    });
     var surveyChangesList = [];
     Object.keys(_surveyDeletes).forEach(function(id) {
       surveyChangesList.push({ id: id, op: 'delete' });
     });
     Object.keys(_surveyEditData).forEach(function(id) {
       if (!_surveyDeletes[id]) {
-        var entry = { id: id, op: 'edit', title: _surveyEditData[id].title, frequency: _surveyEditData[id].frequency, send_time: _surveyEditData[id].send_time, questions: _surveyEditData[id].questions, schedule_day: _surveyEditData[id].schedule_day };
+        var entry = { id: id, op: 'edit', title: _surveyEditData[id].title, frequency: _surveyEditData[id].frequency, send_time: _surveyEditData[id].send_time, questions: _surveyEditData[id].questions, schedule_day: _surveyEditData[id].schedule_day, participants: _surveyEditData[id].participants };
         if (_surveyStatusChanges[id]) entry.status = _surveyStatusChanges[id];
         surveyChangesList.push(entry);
       }
@@ -954,7 +1026,7 @@
         surveyChangesList.push({ id: id, op: _surveyStatusChanges[id] === 'paused' ? 'pause' : 'resume' });
       }
     });
-    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, survey_changes: surveyChangesList });
+    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, team_changes: teamChangesList, survey_changes: surveyChangesList });
     if (tg) { tg.sendData(payload); } else { alert('DEV MODE\n\n' + payload); }
   }
 
@@ -972,6 +1044,7 @@
     } else {
       addQuestion();
       updateScheduleDayVisibility();
+      initCreate(p.get('d'));
     }
   })();
 </script>
