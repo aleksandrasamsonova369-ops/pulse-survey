@@ -633,7 +633,7 @@
     var participants = 'all';
     if (state.participants === 'specific') {
       var checkedIds = _getCheckedIds('participants-checklist');
-      participants = checkedIds.length ? checkedIds.join(',') : 'all';
+      participants = checkedIds.length ? checkedIds.join(';') : 'all';
     }
 
     var sendTime = document.getElementById('send-time').value || '09:00';
@@ -873,7 +873,7 @@
         '</div>' +
         '<div class="survey-edit-form" id="sedit-' + s.id + '">' + buildEditForm(s) + '</div>';
       el.appendChild(card);
-      var selIds = (s.participants && s.participants !== 'all') ? String(s.participants).split(',') : [];
+      var selIds = (s.participants && s.participants !== 'all') ? String(s.participants).split(';') : [];
       _buildCheckList('ef-participants-' + s.id, (_settingsData.users || []), selIds);
     });
   }
@@ -1011,7 +1011,7 @@
     var participants = 'all';
     if (participantsModeBtn && participantsModeBtn.dataset.value === 'specific') {
       var checkedIds = _getCheckedIds('ef-participants-' + id);
-      participants = checkedIds.length ? checkedIds.join(',') : 'all';
+      participants = checkedIds.length ? checkedIds.join(';') : 'all';
     }
     _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions, schedule_day: scheduleDay, participants: participants };
     document.getElementById('stitle-' + id).textContent = title;
