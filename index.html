@@ -847,7 +847,7 @@
         '</div>' +
         '<div class="survey-edit-form" id="sedit-' + s.id + '">' + buildEditForm(s) + '</div>';
       el.appendChild(card);
-      var selIds = (s.participants && s.participants !== 'all') ? s.participants.split(',') : [];
+      var selIds = (s.participants && s.participants !== 'all') ? String(s.participants).split(',') : [];
       _buildCheckList('ef-participants-' + s.id, (_settingsData.users || []), selIds);
     });
   }
