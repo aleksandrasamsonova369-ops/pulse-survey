@@ -764,7 +764,8 @@
         card.className = 'response-card';
         var answersHtml = (r.answers || []).map(function(a, i) {
           var qText = (s.questions && s.questions[i]) ? s.questions[i] : ('Вопрос ' + (i + 1));
-          return '<div class="response-card-answer">' + _escHtml(qText) + ': <strong>' + _escHtml(String(a)) + '</strong></div>';
+          var aLabel = a === 'yes' ? 'Да' : a === 'no' ? 'Нет' : (a !== null && a !== undefined ? String(a) : '—');
+          return '<div class="response-card-answer">' + _escHtml(qText) + ': <strong>' + _escHtml(aLabel) + '</strong></div>';
         }).join('');
         card.innerHTML = '<div class="response-card-name">' + _escHtml(r.name) + '</div>' + answersHtml;
         respList.appendChild(card);
