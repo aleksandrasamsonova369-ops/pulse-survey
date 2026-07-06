@@ -300,6 +300,9 @@
       display:inline-block; font-weight:700; font-size:13px;
       padding:3px 10px; border-radius:20px;
     }
+    .response-card { background:var(--surface); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:8px; border:1px solid var(--border); }
+    .response-card-name { font-size:14px; font-weight:700; color:var(--text); margin-bottom:6px; }
+    .response-card-answer { font-size:13px; color:var(--text-muted); margin-bottom:2px; }
 
     /* ── Settings ── */
     .settings-tabs { display:flex; gap:6px; }
@@ -479,6 +482,11 @@
         <div class="field-label" style="margin-bottom:12px"><span class="field-label-icon">👥</span> По командам</div>
         <table class="team-table" id="teams-table"></table>
       </div>
+    </div>
+
+    <div id="responses-section" style="display:none">
+      <div class="section-title">Ответы участников</div>
+      <div id="responses-list"></div>
     </div>
   </div>
 </div>
@@ -745,6 +753,23 @@
         teamTable.appendChild(tr);
       });
     } else { teamSec.style.display = 'none'; }
+
+    var respSec = document.getElementById('responses-section');
+    var respList = document.getElementById('responses-list');
+    respList.innerHTML = '';
+    if (s.responses && s.responses.length) {
+      respSec.style.display = 'block';
+      s.responses.forEach(function(r) {
+        var card = document.createElement('div');
+        card.className = 'response-card';
+        var answersHtml = (r.answers || []).map(function(a, i) {
+          var qText = (s.questions && s.questions[i]) ? s.questions[i] : ('Вопрос ' + (i + 1));
+          return '<div class="response-card-answer">' + _escHtml(qText) + ': <strong>' + _escHtml(String(a)) + '</strong></div>';
+        }).join('');
+        card.innerHTML = '<div class="response-card-name">' + _escHtml(r.name) + '</div>' + answersHtml;
+        respList.appendChild(card);
+      });
+    } else { respSec.style.display = 'none'; }
   }
 
   // ── Settings ──
