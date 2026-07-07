@@ -584,12 +584,13 @@
         '<span class="question-number">Вопрос ' + id + '</span>' +
         '<button class="btn-remove" onclick="removeQuestion(' + id + ')">✕</button>' +
       '</div>' +
-      '<input type="text" class="field-input question-text" placeholder="Текст вопроса">' +
+      '<textarea class="field-input question-text" placeholder="Текст вопроса" rows="2" style="resize:vertical;font-family:inherit"></textarea>' +
       '<select class="type-select question-type">' +
         '<option value="scale">⭐ Шкала (1–5)</option>' +
         '<option value="nps">📊 NPS (0–10)</option>' +
         '<option value="yesno">✅ Да / Нет</option>' +
         '<option value="text">💬 Свободный ответ</option>' +
+        '<option value="number">🔢 Числовой ответ</option>' +
       '</select>' +
       '<input type="text" class="field-input question-category" placeholder="Категория (напр. Команда, Руководитель)" style="margin-top:8px">';
     document.getElementById('questions-container').appendChild(div);
@@ -777,6 +778,7 @@
   var _settingsData = null;
   var _roleChanges = {};
   var _teamChanges = {};
+  var _userDeletes = {};
   var _surveyStatusChanges = {};
   var _surveyEditData = {};
   var _surveyDeletes = {};
@@ -810,15 +812,20 @@
       return;
     }
     var roles = ['admin','руководитель','сотрудник','наблюдатель'];
+    var selfId = String((_settingsData && _settingsData.requesterId) || '');
     var rows = users.map(function(u) {
       var opts = roles.map(function(r) {
         return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + r + '</option>';
       }).join('');
-      return '<div class="user-row">' +
+      var isSelf = String(u.telegram_id) === selfId;
+      var deleteBtn = isSelf ? '' :
+        '<button type="button" class="btn-action delete" style="flex-shrink:0;padding:7px 10px;font-size:13px" onclick="deleteUser(\'' + u.telegram_id + '\')">Удалить</button>';
+      return '<div class="user-row" id="urow-' + u.telegram_id + '">' +
         '<div><div class="user-name">' + _escHtml(u.name) + '</div>' +
         (u.username ? '<div class="user-handle">@' + _escHtml(u.username) + '</div>' : '') + '</div>' +
         '<input type="text" class="field-input team-input" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.team || '') + '" value="' + _escHtml(u.team || '') + '" placeholder="Команда" style="width:100px;flex-shrink:0;padding:7px 10px;font-size:13px" oninput="onTeamChange(this)">' +
         '<select class="role-select" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.role) + '" onchange="onRoleChange(this)">' + opts + '</select>' +
+        deleteBtn +
       '</div>';
     }).join('');
     el.innerHTML = '<div class="card">' + rows + '</div>';
@@ -841,6 +848,25 @@
     if (inp.value !== inp.dataset.orig) { _teamChanges[tid] = inp.value; inp.classList.add('changed'); }
     else { delete _teamChanges[tid]; inp.classList.remove('changed'); }
     updateSaveBtn();
+  }
+
+  function deleteUser(tid) {
+    var u = (_settingsData.users || []).find(function(x) { return String(x.telegram_id) === String(tid); });
+    var msg = 'Удалить ' + (u ? u.name : tid) + ' из списка?\nЭто действие нельзя отменить.';
+    function applyDelete() {
+      _userDeletes[tid] = true;
+      delete _roleChanges[tid];
+      delete _teamChanges[tid];
+      var row = document.getElementById('urow-' + tid);
+      if (row) row.remove();
+      updateSaveBtn();
+    }
+    if (tg && tg.showConfirm) {
+      tg.showConfirm(msg, function(confirmed) { if (confirmed) applyDelete(); });
+      return;
+    }
+    if (!confirm(msg)) return;
+    applyDelete();
   }
 
   function renderSurveys() {
@@ -880,13 +906,13 @@
 
   function buildEditForm(s) {
     var freqs = ['weekly','biweekly','monthly','once'];
-    var typeLabels = { scale:'Шкала (1-5)', nps:'NPS (0-10)', yesno:'Да / Нет', text:'Свободный ответ' };
+    var typeLabels = { scale:'Шкала (1-5)', nps:'NPS (0-10)', yesno:'Да / Нет', text:'Свободный ответ', number:'Числовой ответ' };
     var qHtml = (s.questions || []).map(function(q) {
-      var typeOpts = ['scale','nps','yesno','text'].map(function(t) {
+      var typeOpts = ['scale','nps','yesno','text','number'].map(function(t) {
         return '<option value="' + t + '"' + (q.type === t ? ' selected' : '') + '>' + typeLabels[t] + '</option>';
       }).join('');
       return '<div style="margin-bottom:8px">' +
-        '<input type="text" class="field-input ef-q-text" value="' + _escHtml(q.text) + '" placeholder="Текст вопроса" style="margin-bottom:5px">' +
+        '<textarea class="field-input ef-q-text" placeholder="Текст вопроса" rows="2" style="margin-bottom:5px;resize:vertical;font-family:inherit">' + _escHtml(q.text) + '</textarea>' +
         '<select class="type-select ef-q-type" style="margin-top:0">' + typeOpts + '</select>' +
         '<input type="text" class="field-input ef-q-cat" value="' + _escHtml(q.category || '') + '" placeholder="Категория" style="margin-top:5px">' +
       '</div>';
@@ -1022,6 +1048,7 @@
   function updateSaveBtn() {
     var hasChanges = Object.keys(_roleChanges).length > 0 ||
       Object.keys(_teamChanges).length > 0 ||
+      Object.keys(_userDeletes).length > 0 ||
       Object.keys(_surveyStatusChanges).length > 0 ||
       Object.keys(_surveyEditData).length > 0 ||
       Object.keys(_surveyDeletes).length > 0;
@@ -1035,6 +1062,9 @@
     });
     var teamChangesList = Object.keys(_teamChanges).map(function(tid) {
       return { telegram_id: parseInt(tid, 10), team: _teamChanges[tid] };
+    });
+    var userDeletesList = Object.keys(_userDeletes).map(function(tid) {
+      return { telegram_id: parseInt(tid, 10) };
     });
     var surveyChangesList = [];
     Object.keys(_surveyDeletes).forEach(function(id) {
@@ -1052,7 +1082,7 @@
         surveyChangesList.push({ id: id, op: _surveyStatusChanges[id] === 'paused' ? 'pause' : 'resume' });
       }
     });
-    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, team_changes: teamChangesList, survey_changes: surveyChangesList });
+    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, team_changes: teamChangesList, user_deletes: userDeletesList, survey_changes: surveyChangesList });
     if (tg) { tg.sendData(payload); } else { alert('DEV MODE\n\n' + payload); }
   }
 
