@@ -393,6 +393,15 @@ h2 em { font-style: italic; font-weight: 500; }
     color: var(--crimson);
     border-top: 1px solid var(--line);
 }
+.spec-card .link a,
+.contact a {
+    color: var(--crimson);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(196, 30, 58, .35);
+    transition: border-color .2s;
+}
+.spec-card .link a:hover,
+.contact a:hover { border-bottom-color: var(--crimson); }
 .spec-card .caveat {
     display: inline-block;
     margin-top: 14px;
@@ -400,6 +409,20 @@ h2 em { font-style: italic; font-weight: 500; }
     font-size: 18px;
     font-style: italic;
     color: var(--ink-faint);
+}
+/* Строка «цена · подписчики» под описанием кейса */
+.spec-card .stat {
+    margin-top: 16px;
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--ink);
+}
+.spec-card .stat span { color: var(--ink-faint); font-weight: 400; }
+/* Сетка на две карточки (слайд «крупные бюджеты») */
+.spec-grid.two {
+    grid-template-columns: 1fr 1fr;
+    max-width: 1220px;
 }
 
 /* ===========================================
@@ -538,7 +561,7 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
             <div class="drop">Ф</div>
             <div class="rule reveal"></div>
             <div class="kicker reveal">Канал t.me/fedor_krivov</div>
-            <h1 class="reveal">Девять специалистов<br><em>по личному бренду</em></h1>
+            <h1 class="reveal">14 специалистов<br><em>по личному бренду</em></h1>
             <p class="sub reveal">Позиционирование, контент и рост канала: кого выбрать для разнотематического бренда — и в каком порядке действовать</p>
             <div class="byline">
                 <span>Подготовила <b>Александра</b></span>
@@ -573,7 +596,7 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
                 </div>
             </div>
             <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
-            <div class="page-num">2 / 8</div>
+            <div class="page-num">2 / 10</div>
         </div>
     </section>
 
@@ -582,13 +605,13 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
         <div class="slide-inner">
             <div class="rule reveal"></div>
             <div class="kicker reveal">Логика подбора</div>
-            <h2 class="reveal">Девять имён — <em>три этапа</em></h2>
+            <h2 class="reveal">Четырнадцать имён — <em>три этапа</em></h2>
             <div class="stages">
                 <div class="stage-card reveal">
                     <div class="roman">I</div>
                     <h3>Позиционирование</h3>
                     <p>Собрать разные темы в цельный образ и найти «якорь доверия». Начинать отсюда.</p>
-                    <div class="names">Кононова · Азаренок · Игнатьева</div>
+                    <div class="names">Кононова · Сашурина · Мария И · Азаренок · Мавричева · Захарова</div>
                 </div>
                 <div class="stage-card reveal">
                     <div class="roman">II</div>
@@ -600,11 +623,11 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
                     <div class="roman">III</div>
                     <h3>На вырост</h3>
                     <p>Игроки уровня CEO-клиентов и платного трафика — когда база уже построена.</p>
-                    <div class="names">Teleguè · «Космос-4» · «Соломка»</div>
+                    <div class="names">Teleguè · «Космос-4» · «Соломка» · Social Stars · Getbrand</div>
                 </div>
             </div>
             <div class="footer-mark">Все кейсы проверены по открытым источникам</div>
-            <div class="page-num">3 / 8</div>
+            <div class="page-num">3 / 10</div>
         </div>
     </section>
 
@@ -620,25 +643,65 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
                     <h3>Екатерина Кононова</h3>
                     <div class="org">агентство BAKERS</div>
                     <p class="case">Первое в СНГ агентство персонального брендинга (с 2014), <b>200+ бренд-стратегий</b>, бестселлер «Личный бренд с нуля», премии «Серебряный лучник» и RuPoR. Стартовый продукт — <b>стратсессия «позиционирование за 1,5 часа»</b>.</p>
-                    <div class="link">kononovaekaterina.ru</div>
+                    <div class="stat">Цена по запросу</div>
+                    <div class="link"><a href="https://kononovaekaterina.ru/" target="_blank" rel="noopener">kononovaekaterina.ru</a></div>
                 </div>
+                <div class="spec-card reveal">
+                    <div class="role">Индивидуальная работа</div>
+                    <h3>Саша Сашурина</h3>
+                    <div class="org">частная практика + PR-агентство REMARK</div>
+                    <p class="case">13 лет в PR, 7 лет в личных брендах, ICF-коуч. Книга «Личный бренд. Карьера по новым правилам», публикации в <b>Forbes и Коммерсанте</b>, методика Brand-WOW. Программа: <b>2 месяца, 8 встреч</b>, 6+ кейсов с результатами.</p>
+                    <div class="stat">Цена по запросу <span>· TG 1,6K</span></div>
+                    <div class="link"><a href="https://sashasashurina.ru/" target="_blank" rel="noopener">sashasashurina.ru</a></div>
+                </div>
+                <div class="spec-card reveal">
+                    <div class="role">Менторинг</div>
+                    <h3>Мария И</h3>
+                    <div class="org">IMARIA.PRO</div>
+                    <p class="case">Экс-директор по маркетингу Ситибанка, 15 лет опыта, <b>24+ кейса</b> на сайте, клиенты — РЖД, EVRAZ, BCS. Ядро услуги — <b>позиционирование личного бренда</b> руководителей и предпринимателей; ментор ВШЭ.</p>
+                    <div class="stat">Менторская гостиная 5 000 ₽ <span>· TG 3,2K</span></div>
+                    <div class="link"><a href="https://imaria.pro/" target="_blank" rel="noopener">imaria.pro</a></div>
+                </div>
+            </div>
+            <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
+            <div class="page-num">4 / 10</div>
+        </div>
+    </section>
+
+    <!-- ============ СЛАЙД 5: ЭТАП I — ПРОГРАММЫ И ОБУЧЕНИЕ ============ -->
+    <section class="slide">
+        <div class="slide-inner">
+            <div class="rule reveal"></div>
+            <div class="kicker reveal">Этап I · Программы и обучение</div>
+            <h2 class="reveal">Если удобнее <em>формат курса</em></h2>
+            <div class="spec-grid">
                 <div class="spec-card reveal">
                     <div class="role">Стратег</div>
                     <h3>Мария Азаренок</h3>
                     <div class="org">AzarenokPro</div>
-                    <p class="case">Автор книги «Активируй свой персональный бренд!», YouTube-канал <b>100 000+ подписчиков</b>, 7+ лет практики. Отдельная услуга — <b>смена и расширение аудитории</b>, а не работа в одной нише.</p>
-                    <div class="link">azarenokpro.com</div>
+                    <p class="case">Автор книги «Активируй свой персональный бренд!», 7+ лет практики. Отдельная услуга — <b>смена и расширение аудитории</b>, а не работа в одной нише.</p>
+                    <div class="stat">Цена по запросу <span>· YouTube 100K+</span></div>
+                    <div class="link"><a href="https://azarenokpro.com/" target="_blank" rel="noopener">azarenokpro.com</a></div>
                 </div>
                 <div class="spec-card reveal">
-                    <div class="role">Ментор</div>
-                    <h3>Вероника Игнатьева</h3>
-                    <div class="org">частная практика</div>
-                    <p class="case">Единственная из найденных, кто <b>дословно разбирает нашу дилемму</b>: «широкий круг услуг и разные сегменты аудитории» — на реальном клиентском кейсе (vc.ru).</p>
-                    <div class="link">vc.ru/marketing/1638817</div>
+                    <div class="role">Программы и книги</div>
+                    <h3>Ана Мавричева</h3>
+                    <div class="org">экосистема «Код Легенды»</div>
+                    <p class="case">20+ лет заявленного опыта, <b>4 книги</b> (в т.ч. «Код Публичности»), сообщество 50 000+ участниц. Сильна в позиционировании, но формат — <b>массовые программы</b>, а не индивидуальный разбор.</p>
+                    <div class="stat">Цена по запросу <span>· TG ~13K</span></div>
+                    <div class="link"><a href="https://mavricheva.ru/" target="_blank" rel="noopener">mavricheva.ru</a></div>
+                </div>
+                <div class="spec-card reveal">
+                    <div class="role">Обучение и SMM</div>
+                    <h3>Света Захарова</h3>
+                    <div class="org">частная практика + онлайн-школа</div>
+                    <p class="case">17 лет в PR/SMM, <b>6000+ учеников</b>, книга «Ты уже бренд», подкаст. Фокус — упаковка и монетизация в соцсетях; стратегическое позиционирование — <b>слабее</b>, чем у соседей по слайду.</p>
+                    <div class="stat">Цена по запросу <span>· TG 6,7K · Instagram ~90K</span></div>
+                    <div class="link"><a href="https://t.me/terenyushaa" target="_blank" rel="noopener">t.me/terenyushaa</a></div>
                 </div>
             </div>
             <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
-            <div class="page-num">4 / 8</div>
+            <div class="page-num">5 / 10</div>
         </div>
     </section>
 
@@ -654,25 +717,25 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
                     <h3>Павел Молянов</h3>
                     <div class="org">агентство «Сделаем»</div>
                     <p class="case">Топ-3 контент-агентств Рейтинга Рунета. Сам вырастил личный Telegram-канал <b>с нуля до десятков тысяч</b> и публично разбирает стоимость подписчика. Консультация — <b>25 000 ₽/час</b>.</p>
-                    <div class="link">sdelaem.agency/consultation</div>
+                    <div class="link"><a href="https://sdelaem.agency/consultation" target="_blank" rel="noopener">sdelaem.agency/consultation</a></div>
                 </div>
                 <div class="spec-card reveal">
                     <div class="role">Живой пример формата</div>
                     <h3>Дмитрий Бескромный</h3>
                     <div class="org">bQ Group</div>
                     <p class="case">Свой канал — микс трендов, личных мыслей и книг без узкой ниши: рост <b>с 28 000 до 93 000+ за 2024 год</b> (TGStat), «Прорыв года» TGrammy. Читает курс по продюсированию бренда в НИУ ВШЭ.</p>
-                    <div class="link">t.me/dbeskromny</div>
+                    <div class="link"><a href="https://t.me/dbeskromny" target="_blank" rel="noopener">t.me/dbeskromny</a></div>
                 </div>
                 <div class="spec-card reveal">
                     <div class="role">SMM + PR</div>
                     <h3>Match agency</h3>
                     <div class="org">Россиус · Емельянова</div>
                     <p class="case">Кейс дизайнера Михаила Жилина: охваты <b>×2</b>, заявки <b>+500%</b> без рекламного бюджета, 33 публикации в СМИ с охватом 2,1 млн за 10 месяцев. Строят образ сразу в соцсетях и деловых СМИ.</p>
-                    <div class="link">match-smm.ru</div>
+                    <div class="link"><a href="https://match-smm.ru/" target="_blank" rel="noopener">match-smm.ru</a></div>
                 </div>
             </div>
             <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
-            <div class="page-num">5 / 8</div>
+            <div class="page-num">6 / 10</div>
         </div>
     </section>
 
@@ -689,7 +752,7 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
                     <div class="org">осн. Никита Петенко</div>
                     <p class="case">Роман Абдуллин (экс-CMO ПИК/«Самолёт»): <b>+3515 подписчиков за 4 месяца</b>, охват ×2. Ivanov Invest: рост с ~1000 до <b>25 000</b>.</p>
                     <span class="caveat">Идти с готовым позиционированием — это закупка трафика, не стратегия</span>
-                    <div class="link">telegue.com</div>
+                    <div class="link"><a href="https://telegue.com/" target="_blank" rel="noopener">telegue.com</a></div>
                 </div>
                 <div class="spec-card reveal">
                     <div class="role">Крупный бизнес</div>
@@ -697,7 +760,7 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
                     <div class="org">Надежда Кобина</div>
                     <p class="case">Продюсирование личного бренда CEO и топ-менеджмента: <b>40+ кросс-отраслевых кейсов</b> — IT, агропром, промышленность, финтех.</p>
                     <span class="caveat">Метрики под NDA, сегмент корпоративный — ориентир на будущее</span>
-                    <div class="link">cosmos-4.ru/cases</div>
+                    <div class="link"><a href="https://cosmos-4.ru/cases/" target="_blank" rel="noopener">cosmos-4.ru/cases</a></div>
                 </div>
                 <div class="spec-card reveal">
                     <div class="role">Полный цикл</div>
@@ -705,11 +768,42 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
                     <div class="org">solomka.biz</div>
                     <p class="case">Упаковка бренда целиком: книги, выступления, видео, PR. В клиентах — <b>Сергей Галицкий и Михаил Лабковский</b>: классические мультитематические персоны.</p>
                     <span class="caveat">Лучшее совпадение по профилю, но масштаб клиентов — корпоративный</span>
-                    <div class="link">solomka.biz</div>
+                    <div class="link"><a href="https://solomka.biz/wiki/produser.html" target="_blank" rel="noopener">solomka.biz</a></div>
                 </div>
             </div>
             <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
-            <div class="page-num">6 / 8</div>
+            <div class="page-num">7 / 10</div>
+        </div>
+    </section>
+
+    <!-- ============ СЛАЙД 8: КРУПНЫЕ БЮДЖЕТЫ ============ -->
+    <section class="slide">
+        <div class="slide-inner">
+            <div class="rule reveal"></div>
+            <div class="kicker reveal">Этап III · Крупные бюджеты</div>
+            <h2 class="reveal">Проверили — <em>но не сейчас</em></h2>
+            <div class="spec-grid two">
+                <div class="spec-card reveal">
+                    <div class="role">Медийные персоны и политики</div>
+                    <h3>Social Stars</h3>
+                    <div class="org">агентство, 10 лет на рынке</div>
+                    <p class="case">Клиенты: <b>Правительство Москвы, SKOLKOVO, «Лидеры России»</b>; работали с Хакамадой. Полный цикл продвижения личного бренда — но агентство рассчитано на крупные бюджеты и медийных персон.</p>
+                    <span class="caveat">Для канала на 200 подписчиков — избыточно; отзывов вне их площадок мало</span>
+                    <div class="stat">Цена по запросу</div>
+                    <div class="link"><a href="https://expert.social-stars.ru/prodvizhenie-professionalnogo-brenda/" target="_blank" rel="noopener">expert.social-stars.ru</a></div>
+                </div>
+                <div class="spec-card reveal">
+                    <div class="role">Брендинговое агентство</div>
+                    <h3>Getbrand</h3>
+                    <div class="org">агентство, Москва</div>
+                    <p class="case">Классическое агентство товарного брендинга с услугой персонального: миссия, архетип, стратегия. Но <b>публичных кейсов по личному бренду на сайте нет</b> — услуга выглядит побочной.</p>
+                    <span class="caveat">Не рекомендуем как приоритет: нет кейсов по ЛБ, цены только «на переговорах»</span>
+                    <div class="stat">Цена по переговорам <span>· TG 1,3K</span></div>
+                    <div class="link"><a href="https://www.getbrand.ru/personal-branding/" target="_blank" rel="noopener">getbrand.ru</a></div>
+                </div>
+            </div>
+            <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
+            <div class="page-num">8 / 10</div>
         </div>
     </section>
 
@@ -746,7 +840,7 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
                 </div>
             </div>
             <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
-            <div class="page-num">7 / 8</div>
+            <div class="page-num">9 / 10</div>
         </div>
     </section>
 
@@ -756,9 +850,9 @@ body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson
             <div class="rule reveal" style="margin:0 auto 26px;"></div>
             <div class="kicker reveal">Следующий шаг</div>
             <h2 class="reveal">Выбрать двоих —<br><em>и написать им на этой неделе</em></h2>
-            <p class="lead reveal">Все девять проверены по открытым источникам: кейсы с цифрами, рабочие ссылки, отзывы. Полная таблица со ссылками — отдельным файлом. Репутационно сомнительные кандидаты отсеяны на этапе проверки.</p>
+            <p class="lead reveal">Все четырнадцать проверены по открытым источникам: кейсы с цифрами, рабочие ссылки, цены и аудитория соцсетей. Полная таблица со ссылками — отдельным файлом. Репутационно сомнительные кандидаты отсеяны на этапе проверки.</p>
             <div class="contact reveal">
-                <span>Таблица: <b>Google Sheets</b></span>
+                <span>Таблица: <a href="https://docs.google.com/spreadsheets/d/1jKWHZnAb_IyEd5wnTJNuKlhdbjqbxYyrr1P7qaGoRIg/edit?usp=sharing" target="_blank" rel="noopener"><b>Google Sheets</b></a></span>
                 <span>Вопросы: <b>Александра</b></span>
                 <span>Июль 2026</span>
             </div>
@@ -868,7 +962,7 @@ const deck = new SlidePresentation();
    =========================================== */
 const editor = {
     isActive: false,
-    key: 'fedor-brand-deck-edits',
+    key: 'fedor-brand-deck-edits-v2',
     editableSelector: 'h1, h2, h3, p, li, .kicker, .role, .org, .link, .names, .caveat, .aside, .sub, .byline span, .contact span, .pull-quote, .footer-mark',
 
     toggleEditMode() {
