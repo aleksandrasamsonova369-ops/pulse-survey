@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Личный бренд Фёдора Кривова — 9 специалистов</title>
+
+<!-- Шрифты: Cormorant Garamond (заголовки) + Source Serif 4 (текст), оба с кириллицей -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================
+   ТЕМА «БУМАГА И ЧЕРНИЛА»
+   Поменять цвета/шрифты можно здесь
+   =========================================== */
+:root {
+    --paper: #faf9f7;          /* тёплый кремовый фон */
+    --paper-deep: #f2f0ea;     /* чуть темнее — карточки */
+    --ink: #1a1a1a;            /* чернила — основной текст */
+    --ink-soft: #4a4742;       /* вторичный текст */
+    --ink-faint: #8a857e;      /* подписи */
+    --crimson: #c41e3a;        /* алый акцент */
+    --line: #ddd9d1;           /* линии */
+    --stage-bg: #2a2825;       /* фон вокруг слайда */
+    --slide-bg: var(--paper);
+
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Source Serif 4', Georgia, serif;
+
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-normal: 0.7s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   (viewport-base.css — не менять)
+   =========================================== */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+img, video, canvas, svg { max-width: 100%; max-height: 100%; }
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+@media print {
+    html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+    .deck-viewport { position: static; overflow: visible; background: #fff; }
+    .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px; height: 1080px;
+        break-after: page; page-break-after: always;
+    }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .deck-controls { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* ===========================================
+   АНИМАЦИИ ПОЯВЛЕНИЯ (спокойные, литературные)
+   =========================================== */
+.reveal {
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity var(--duration-normal) var(--ease-out-expo),
+                transform var(--duration-normal) var(--ease-out-expo);
+}
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.reveal:nth-child(1) { transition-delay: .1s; }
+.reveal:nth-child(2) { transition-delay: .22s; }
+.reveal:nth-child(3) { transition-delay: .34s; }
+.reveal:nth-child(4) { transition-delay: .46s; }
+.reveal:nth-child(5) { transition-delay: .58s; }
+.reveal:nth-child(6) { transition-delay: .7s; }
+
+/* ===========================================
+   ОБЩИЕ ЭЛЕМЕНТЫ СЛАЙДОВ
+   =========================================== */
+.slide-inner {
+    position: absolute;
+    inset: 0;
+    padding: 90px 120px 100px;
+    display: flex;
+    flex-direction: column;
+}
+.rule {
+    width: 110px; height: 2px;
+    background: var(--crimson);
+    margin-bottom: 26px;
+}
+.kicker {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    color: var(--crimson);
+    margin-bottom: 20px;
+}
+h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 84px;
+    line-height: 1.04;
+    color: var(--ink);
+}
+h2 em { font-style: italic; font-weight: 500; }
+.lead {
+    font-family: var(--font-body);
+    font-size: 28px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 1200px;
+}
+.page-num {
+    position: absolute;
+    bottom: 52px; right: 120px;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 26px;
+    color: var(--ink-faint);
+}
+.footer-mark {
+    position: absolute;
+    bottom: 52px; left: 120px;
+    font-family: var(--font-body);
+    font-size: 19px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+
+/* ===========================================
+   СЛАЙД 1 — ТИТУЛ
+   =========================================== */
+.title-slide .slide-inner {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 200px;
+}
+.title-slide .drop {
+    position: absolute;
+    top: 46px; left: 110px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 270px;
+    line-height: 1;
+    color: var(--crimson);
+    opacity: .08;
+}
+.title-slide h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 138px;
+    line-height: 1.02;
+    color: var(--ink);
+}
+.title-slide h1 em { font-style: italic; font-weight: 500; }
+.title-slide .sub {
+    margin-top: 50px;
+    font-family: var(--font-body);
+    font-size: 30px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 1060px;
+}
+.title-slide .byline {
+    position: absolute;
+    bottom: 76px; left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 56px;
+    font-family: var(--font-body);
+    font-size: 21px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+.title-slide .byline b { color: var(--ink); font-weight: 600; }
+
+/* ===========================================
+   СЛАЙД 2 — ТОЧКА СТАРТА (две колонки)
+   =========================================== */
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 90px;
+    margin-top: 56px;
+    flex: 1;
+    min-height: 0;
+}
+.col-block h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 40px;
+    color: var(--ink);
+    margin-bottom: 26px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+}
+.fact-list { list-style: none; }
+.fact-list li {
+    font-family: var(--font-body);
+    font-size: 26px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    padding: 16px 0 16px 40px;
+    position: relative;
+    border-bottom: 1px solid var(--line);
+}
+.fact-list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--crimson);
+    font-weight: 700;
+}
+.fact-list b { color: var(--ink); font-weight: 600; }
+.pull-quote {
+    margin-top: 34px;
+    padding: 34px 40px;
+    background: var(--paper-deep);
+    border-left: 3px solid var(--crimson);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 33px;
+    line-height: 1.4;
+    color: var(--ink);
+}
+
+/* ===========================================
+   СЛАЙД 3 — ЛОГИКА ПОДБОРА (три этапа)
+   =========================================== */
+.stages {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 46px;
+    margin-top: 64px;
+    flex: 1;
+    min-height: 0;
+}
+.stage-card {
+    background: var(--paper-deep);
+    padding: 46px 44px;
+    border-top: 3px solid var(--crimson);
+    display: flex;
+    flex-direction: column;
+}
+.stage-card .roman {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 76px;
+    color: var(--crimson);
+    line-height: 1;
+    margin-bottom: 22px;
+}
+.stage-card h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 42px;
+    color: var(--ink);
+    margin-bottom: 18px;
+}
+.stage-card p {
+    font-family: var(--font-body);
+    font-size: 24px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+}
+.stage-card .names {
+    margin-top: auto;
+    padding-top: 26px;
+    font-family: var(--font-body);
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.6;
+    color: var(--ink);
+    border-top: 1px solid var(--line);
+}
+
+/* ===========================================
+   СЛАЙДЫ 4-6 — КАРТОЧКИ СПЕЦИАЛИСТОВ
+   =========================================== */
+.spec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 44px;
+    margin-top: 52px;
+    flex: 1;
+    min-height: 0;
+}
+.spec-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    padding: 42px 40px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.spec-card .role {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--crimson);
+    margin-bottom: 16px;
+}
+.spec-card h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 42px;
+    line-height: 1.08;
+    color: var(--ink);
+    margin-bottom: 8px;
+}
+.spec-card .org {
+    font-family: var(--font-body);
+    font-size: 21px;
+    color: var(--ink-faint);
+    margin-bottom: 24px;
+}
+.spec-card .case {
+    font-family: var(--font-body);
+    font-size: 23px;
+    line-height: 1.52;
+    color: var(--ink-soft);
+}
+.spec-card .case b { color: var(--ink); font-weight: 600; }
+.spec-card .link {
+    margin-top: auto;
+    padding-top: 26px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 21px;
+    color: var(--crimson);
+    border-top: 1px solid var(--line);
+}
+.spec-card .caveat {
+    display: inline-block;
+    margin-top: 14px;
+    font-family: var(--font-body);
+    font-size: 18px;
+    font-style: italic;
+    color: var(--ink-faint);
+}
+
+/* ===========================================
+   СЛАЙД 7 — ПОРЯДОК ДЕЙСТВИЙ
+   =========================================== */
+.steps {
+    margin-top: 60px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+}
+.step-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 420px;
+    gap: 50px;
+    align-items: start;
+    padding-bottom: 34px;
+    border-bottom: 1px solid var(--line);
+}
+.step-row .n {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 92px;
+    line-height: .9;
+    color: var(--crimson);
+}
+.step-row h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 40px;
+    color: var(--ink);
+    margin-bottom: 12px;
+}
+.step-row p {
+    font-family: var(--font-body);
+    font-size: 25px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+}
+.step-row .aside {
+    font-family: var(--font-body);
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--ink-faint);
+    font-style: italic;
+    padding-top: 10px;
+}
+.step-row .aside b { color: var(--ink); font-style: normal; font-weight: 600; }
+
+/* ===========================================
+   СЛАЙД 8 — ФИНАЛ
+   =========================================== */
+.closing .slide-inner {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 220px;
+}
+.closing h2 {
+    font-size: 108px;
+    margin: 36px 0 46px;
+}
+.closing .lead { text-align: center; margin: 0 auto; }
+.closing .contact {
+    margin-top: 70px;
+    display: flex;
+    gap: 70px;
+    justify-content: center;
+    font-family: var(--font-body);
+    font-size: 23px;
+    color: var(--ink-soft);
+}
+.closing .contact b { color: var(--crimson); font-weight: 600; }
+
+/* ===========================================
+   НАВИГАЦИЯ (вне слайдов)
+   =========================================== */
+.deck-controls {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: rgba(250,249,247,.75);
+    user-select: none;
+}
+.deck-controls button {
+    background: none;
+    border: 1px solid rgba(250,249,247,.35);
+    color: rgba(250,249,247,.85);
+    font-size: 17px;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: border-color .2s, color .2s;
+}
+.deck-controls button:hover { border-color: #fff; color: #fff; }
+
+/* ===========================================
+   РЕДАКТИРОВАНИЕ ТЕКСТА (наведи в левый верхний угол или клавиша E)
+   =========================================== */
+.edit-hotzone {
+    position: fixed; top: 0; left: 0;
+    width: 80px; height: 80px;
+    z-index: 10000;
+    cursor: pointer;
+}
+.edit-toggle {
+    position: fixed; top: 18px; left: 18px;
+    z-index: 10001;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 1px solid rgba(250,249,247,.4);
+    background: rgba(26,26,26,.85);
+    color: #faf9f7;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+.edit-toggle.active { background: var(--crimson); border-color: var(--crimson); }
+body.editing .slide [contenteditable="true"] { outline: 1px dashed var(--crimson); outline-offset: 4px; }
+</style>
+</head>
+<body>
+
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+    <!-- ============ СЛАЙД 1: ТИТУЛ ============ -->
+    <section class="slide title-slide active">
+        <div class="slide-inner">
+            <div class="drop">Ф</div>
+            <div class="rule reveal"></div>
+            <div class="kicker reveal">Канал t.me/fedor_krivov</div>
+            <h1 class="reveal">Девять специалистов<br><em>по личному бренду</em></h1>
+            <p class="sub reveal">Позиционирование, контент и рост канала: кого выбрать для разнотематического бренда — и в каком порядке действовать</p>
+            <div class="byline">
+                <span>Подготовила <b>Александра</b></span>
+                <span>Июль 2026</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ СЛАЙД 2: ТОЧКА СТАРТА ============ -->
+    <section class="slide">
+        <div class="slide-inner">
+            <div class="rule reveal"></div>
+            <div class="kicker reveal">Точка старта</div>
+            <h2 class="reveal">Почему обычные схемы <em>не подходят</em></h2>
+            <div class="two-col">
+                <div class="col-block reveal">
+                    <h3>Где мы сейчас</h3>
+                    <ul class="fact-list">
+                        <li>Канал <b>~200 подписчиков</b>, несколько тем сразу: бизнес, жизнь, личные интересы</li>
+                        <li><b>Чёткого позиционирования нет</b> — и классический совет «выбери одну нишу» здесь не работает</li>
+                        <li>Это <b>не инфобизнес-кейс</b>: нет курса и одной «боли», под которую строится воронка</li>
+                    </ul>
+                </div>
+                <div class="col-block reveal">
+                    <h3>Что показал анализ конкурентов</h3>
+                    <ul class="fact-list">
+                        <li>У растущих каналов тоже <b>широкая тема</b> «бизнес + жизнь» — узость не обязательна</li>
+                        <li>Но у каждого есть <b>«якорь доверия»</b>, вынесенный вперёд: CEO компании, сооснователь известного стартапа</li>
+                        <li><b>Ни один не вырос бесплатно</b>: годы контента, реклама или готовая офлайн-репутация</li>
+                    </ul>
+                    <div class="pull-quote">Сначала — кто ты и почему тебе верят. Потом — трафик.</div>
+                </div>
+            </div>
+            <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
+            <div class="page-num">2 / 8</div>
+        </div>
+    </section>
+
+    <!-- ============ СЛАЙД 3: ЛОГИКА ПОДБОРА ============ -->
+    <section class="slide">
+        <div class="slide-inner">
+            <div class="rule reveal"></div>
+            <div class="kicker reveal">Логика подбора</div>
+            <h2 class="reveal">Девять имён — <em>три этапа</em></h2>
+            <div class="stages">
+                <div class="stage-card reveal">
+                    <div class="roman">I</div>
+                    <h3>Позиционирование</h3>
+                    <p>Собрать разные темы в цельный образ и найти «якорь доверия». Начинать отсюда.</p>
+                    <div class="names">Кононова · Азаренок · Игнатьева</div>
+                </div>
+                <div class="stage-card reveal">
+                    <div class="roman">II</div>
+                    <h3>Контент и рост</h3>
+                    <p>Концепция канала, контент-стратегия, первые понятные шаги продвижения.</p>
+                    <div class="names">Молянов · Бескромный · Match agency</div>
+                </div>
+                <div class="stage-card reveal">
+                    <div class="roman">III</div>
+                    <h3>На вырост</h3>
+                    <p>Игроки уровня CEO-клиентов и платного трафика — когда база уже построена.</p>
+                    <div class="names">Teleguè · «Космос-4» · «Соломка»</div>
+                </div>
+            </div>
+            <div class="footer-mark">Все кейсы проверены по открытым источникам</div>
+            <div class="page-num">3 / 8</div>
+        </div>
+    </section>
+
+    <!-- ============ СЛАЙД 4: ЭТАП I — ПОЗИЦИОНИРОВАНИЕ ============ -->
+    <section class="slide">
+        <div class="slide-inner">
+            <div class="rule reveal"></div>
+            <div class="kicker reveal">Этап I · Позиционирование</div>
+            <h2 class="reveal">Кто поможет собрать <em>образ</em></h2>
+            <div class="spec-grid">
+                <div class="spec-card reveal">
+                    <div class="role">Рекомендуем начать</div>
+                    <h3>Екатерина Кононова</h3>
+                    <div class="org">агентство BAKERS</div>
+                    <p class="case">Первое в СНГ агентство персонального брендинга (с 2014), <b>200+ бренд-стратегий</b>, бестселлер «Личный бренд с нуля», премии «Серебряный лучник» и RuPoR. Стартовый продукт — <b>стратсессия «позиционирование за 1,5 часа»</b>.</p>
+                    <div class="link">kononovaekaterina.ru</div>
+                </div>
+                <div class="spec-card reveal">
+                    <div class="role">Стратег</div>
+                    <h3>Мария Азаренок</h3>
+                    <div class="org">AzarenokPro</div>
+                    <p class="case">Автор книги «Активируй свой персональный бренд!», YouTube-канал <b>100 000+ подписчиков</b>, 7+ лет практики. Отдельная услуга — <b>смена и расширение аудитории</b>, а не работа в одной нише.</p>
+                    <div class="link">azarenokpro.com</div>
+                </div>
+                <div class="spec-card reveal">
+                    <div class="role">Ментор</div>
+                    <h3>Вероника Игнатьева</h3>
+                    <div class="org">частная практика</div>
+                    <p class="case">Единственная из найденных, кто <b>дословно разбирает нашу дилемму</b>: «широкий круг услуг и разные сегменты аудитории» — на реальном клиентском кейсе (vc.ru).</p>
+                    <div class="link">vc.ru/marketing/1638817</div>
+                </div>
+            </div>
+            <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
+            <div class="page-num">4 / 8</div>
+        </div>
+    </section>
+
+    <!-- ============ СЛАЙД 5: ЭТАП II — КОНТЕНТ И РОСТ ============ -->
+    <section class="slide">
+        <div class="slide-inner">
+            <div class="rule reveal"></div>
+            <div class="kicker reveal">Этап II · Контент и рост</div>
+            <h2 class="reveal">Кто поможет каналу <em>расти</em></h2>
+            <div class="spec-grid">
+                <div class="spec-card reveal">
+                    <div class="role">Практик малых каналов</div>
+                    <h3>Павел Молянов</h3>
+                    <div class="org">агентство «Сделаем»</div>
+                    <p class="case">Топ-3 контент-агентств Рейтинга Рунета. Сам вырастил личный Telegram-канал <b>с нуля до десятков тысяч</b> и публично разбирает стоимость подписчика. Консультация — <b>25 000 ₽/час</b>.</p>
+                    <div class="link">sdelaem.agency/consultation</div>
+                </div>
+                <div class="spec-card reveal">
+                    <div class="role">Живой пример формата</div>
+                    <h3>Дмитрий Бескромный</h3>
+                    <div class="org">bQ Group</div>
+                    <p class="case">Свой канал — микс трендов, личных мыслей и книг без узкой ниши: рост <b>с 28 000 до 93 000+ за 2024 год</b> (TGStat), «Прорыв года» TGrammy. Читает курс по продюсированию бренда в НИУ ВШЭ.</p>
+                    <div class="link">t.me/dbeskromny</div>
+                </div>
+                <div class="spec-card reveal">
+                    <div class="role">SMM + PR</div>
+                    <h3>Match agency</h3>
+                    <div class="org">Россиус · Емельянова</div>
+                    <p class="case">Кейс дизайнера Михаила Жилина: охваты <b>×2</b>, заявки <b>+500%</b> без рекламного бюджета, 33 публикации в СМИ с охватом 2,1 млн за 10 месяцев. Строят образ сразу в соцсетях и деловых СМИ.</p>
+                    <div class="link">match-smm.ru</div>
+                </div>
+            </div>
+            <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
+            <div class="page-num">5 / 8</div>
+        </div>
+    </section>
+
+    <!-- ============ СЛАЙД 6: ЭТАП III — НА ВЫРОСТ ============ -->
+    <section class="slide">
+        <div class="slide-inner">
+            <div class="rule reveal"></div>
+            <div class="kicker reveal">Этап III · На вырост</div>
+            <h2 class="reveal">К кому идти <em>позже</em></h2>
+            <div class="spec-grid">
+                <div class="spec-card reveal">
+                    <div class="role">Платный трафик</div>
+                    <h3>Teleguè</h3>
+                    <div class="org">осн. Никита Петенко</div>
+                    <p class="case">Роман Абдуллин (экс-CMO ПИК/«Самолёт»): <b>+3515 подписчиков за 4 месяца</b>, охват ×2. Ivanov Invest: рост с ~1000 до <b>25 000</b>.</p>
+                    <span class="caveat">Идти с готовым позиционированием — это закупка трафика, не стратегия</span>
+                    <div class="link">telegue.com</div>
+                </div>
+                <div class="spec-card reveal">
+                    <div class="role">Крупный бизнес</div>
+                    <h3>«Космос-4»</h3>
+                    <div class="org">Надежда Кобина</div>
+                    <p class="case">Продюсирование личного бренда CEO и топ-менеджмента: <b>40+ кросс-отраслевых кейсов</b> — IT, агропром, промышленность, финтех.</p>
+                    <span class="caveat">Метрики под NDA, сегмент корпоративный — ориентир на будущее</span>
+                    <div class="link">cosmos-4.ru/cases</div>
+                </div>
+                <div class="spec-card reveal">
+                    <div class="role">Полный цикл</div>
+                    <h3>«Соломка»</h3>
+                    <div class="org">solomka.biz</div>
+                    <p class="case">Упаковка бренда целиком: книги, выступления, видео, PR. В клиентах — <b>Сергей Галицкий и Михаил Лабковский</b>: классические мультитематические персоны.</p>
+                    <span class="caveat">Лучшее совпадение по профилю, но масштаб клиентов — корпоративный</span>
+                    <div class="link">solomka.biz</div>
+                </div>
+            </div>
+            <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
+            <div class="page-num">6 / 8</div>
+        </div>
+    </section>
+
+    <!-- ============ СЛАЙД 7: ПОРЯДОК ДЕЙСТВИЙ ============ -->
+    <section class="slide">
+        <div class="slide-inner">
+            <div class="rule reveal"></div>
+            <div class="kicker reveal">Рекомендация</div>
+            <h2 class="reveal">С чего начать: <em>три шага</em></h2>
+            <div class="steps">
+                <div class="step-row reveal">
+                    <div class="n">1</div>
+                    <div>
+                        <h3>Стратсессия по позиционированию</h3>
+                        <p>Екатерина Кононова (BAKERS): за 1,5 часа собрать разные темы канала в цельный образ и сформулировать «якорь доверия».</p>
+                    </div>
+                    <div class="aside">Разовая консультация — <b>без долгих контрактов</b></div>
+                </div>
+                <div class="step-row reveal">
+                    <div class="n">2</div>
+                    <div>
+                        <h3>Концепция канала и контент-план</h3>
+                        <p>Павел Молянов («Сделаем»): перевести позиционирование в рубрики, тон и план публикаций — по опыту собственного канала.</p>
+                    </div>
+                    <div class="aside">Консультация <b>25 000 ₽/час</b> — реалистично для старта</div>
+                </div>
+                <div class="step-row reveal">
+                    <div class="n">3</div>
+                    <div>
+                        <h3>Первые вложения в рост</h3>
+                        <p>Тестовая закупка рекламы малыми партиями (Telega.in, по 2000–3000 ₽, 3–5 креативов) — только когда есть образ и контент.</p>
+                    </div>
+                    <div class="aside">Трафик на канал без позиционирования — <b>деньги мимо</b></div>
+                </div>
+            </div>
+            <div class="footer-mark">Личный бренд · Фёдор Кривов</div>
+            <div class="page-num">7 / 8</div>
+        </div>
+    </section>
+
+    <!-- ============ СЛАЙД 8: ФИНАЛ ============ -->
+    <section class="slide closing">
+        <div class="slide-inner">
+            <div class="rule reveal" style="margin:0 auto 26px;"></div>
+            <div class="kicker reveal">Следующий шаг</div>
+            <h2 class="reveal">Выбрать двоих —<br><em>и написать им на этой неделе</em></h2>
+            <p class="lead reveal">Все девять проверены по открытым источникам: кейсы с цифрами, рабочие ссылки, отзывы. Полная таблица со ссылками — отдельным файлом. Репутационно сомнительные кандидаты отсеяны на этапе проверки.</p>
+            <div class="contact reveal">
+                <span>Таблица: <b>Google Sheets</b></span>
+                <span>Вопросы: <b>Александра</b></span>
+                <span>Июль 2026</span>
+            </div>
+        </div>
+    </section>
+
+</main>
+</div>
+
+<!-- Навигация под слайдом -->
+<nav class="deck-controls" aria-label="Навигация по слайдам">
+    <button id="prevBtn" aria-label="Предыдущий слайд">‹</button>
+    <span id="pageInfo">1 / 8</span>
+    <button id="nextBtn" aria-label="Следующий слайд">›</button>
+</nav>
+
+<!-- Редактирование текста -->
+<div class="edit-hotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Режим редактирования (E)">✏️</button>
+
+<script>
+/* ===========================================
+   КОНТРОЛЛЕР ПРЕЗЕНТАЦИИ
+   Стрелки / пробел / свайп / колесо мыши
+   =========================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = document.querySelectorAll('.slide');
+        this.currentSlide = 0;
+        this.stage = document.getElementById('deckStage');
+        this.pageInfo = document.getElementById('pageInfo');
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.setupWheelNav();
+        this.setupButtons();
+        this.showSlide(0);
+    }
+
+    /* Масштабируем весь холст 1920×1080 под окно (letterbox при необходимости) */
+    setupStageScale() {
+        const scale = () => {
+            const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            const x = (window.innerWidth - 1920 * factor) / 2;
+            const y = (window.innerHeight - 1080 * factor) / 2;
+            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+        };
+        scale();
+        window.addEventListener('resize', scale);
+    }
+
+    setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+            if (e.target.getAttribute && e.target.getAttribute('contenteditable')) return;
+            if (['ArrowRight', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); this.next(); }
+            if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); this.prev(); }
+            if (e.key === 'Home') this.showSlide(0);
+            if (e.key === 'End') this.showSlide(this.slides.length - 1);
+        });
+    }
+
+    setupTouchNav() {
+        let startX = null;
+        document.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, {passive: true});
+        document.addEventListener('touchend', (e) => {
+            if (startX === null) return;
+            const dx = e.changedTouches[0].clientX - startX;
+            if (Math.abs(dx) > 60) { dx < 0 ? this.next() : this.prev(); }
+            startX = null;
+        }, {passive: true});
+    }
+
+    setupWheelNav() {
+        let lock = false;
+        document.addEventListener('wheel', (e) => {
+            if (lock || document.body.classList.contains('editing')) return;
+            if (Math.abs(e.deltaY) < 25) return;
+            lock = true;
+            e.deltaY > 0 ? this.next() : this.prev();
+            setTimeout(() => { lock = false; }, 500);
+        }, {passive: true});
+    }
+
+    setupButtons() {
+        document.getElementById('prevBtn').addEventListener('click', () => this.prev());
+        document.getElementById('nextBtn').addEventListener('click', () => this.next());
+    }
+
+    next() { this.showSlide(this.currentSlide + 1); }
+    prev() { this.showSlide(this.currentSlide - 1); }
+
+    showSlide(index) {
+        this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === this.currentSlide);
+            slide.classList.toggle('visible', i === this.currentSlide);
+        });
+        this.pageInfo.textContent = (this.currentSlide + 1) + ' / ' + this.slides.length;
+    }
+}
+const deck = new SlidePresentation();
+
+/* ===========================================
+   РЕДАКТОР ТЕКСТА
+   Наведи в левый верхний угол или нажми E,
+   кликни текст — правь, Ctrl+S — сохранить файл
+   =========================================== */
+const editor = {
+    isActive: false,
+    key: 'fedor-brand-deck-edits',
+    editableSelector: 'h1, h2, h3, p, li, .kicker, .role, .org, .link, .names, .caveat, .aside, .sub, .byline span, .contact span, .pull-quote, .footer-mark',
+
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('editing', this.isActive);
+        document.getElementById('editToggle').classList.toggle('active', this.isActive);
+        document.querySelectorAll(this.editableSelector).forEach(el => {
+            if (this.isActive) el.setAttribute('contenteditable', 'true');
+            else el.removeAttribute('contenteditable');
+        });
+        if (!this.isActive) this.persist();
+    },
+
+    persist() {
+        try {
+            const data = {};
+            document.querySelectorAll('.slide').forEach((s, i) => { data[i] = s.innerHTML; });
+            localStorage.setItem(this.key, JSON.stringify(data));
+        } catch (e) { /* localStorage может быть недоступен для file:// — не критично */ }
+    },
+
+    restore() {
+        try {
+            const raw = localStorage.getItem(this.key);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            document.querySelectorAll('.slide').forEach((s, i) => {
+                if (data[i]) s.innerHTML = data[i];
+            });
+        } catch (e) {}
+    },
+
+    saveFile() {
+        this.persist();
+        const blob = new Blob(['<!DOCTYPE html>\n' + document.documentElement.outerHTML], {type: 'text/html;charset=utf-8'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Фёдор_личный_бренд_презентация.html';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+};
+editor.restore();
+
+/* Кнопка редактирования: hover-зона с задержкой 400 мс */
+const hotzone = document.querySelector('.edit-hotzone');
+const editToggle = document.getElementById('editToggle');
+let hideTimeout = null;
+
+hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); editToggle.classList.add('show'); });
+hotzone.addEventListener('mouseleave', () => {
+    hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400);
+});
+editToggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+editToggle.addEventListener('mouseleave', () => {
+    hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400);
+});
+editToggle.addEventListener('click', () => editor.toggleEditMode());
+hotzone.addEventListener('click', () => editor.toggleEditMode());
+
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'e' || e.key === 'E' || e.key === 'у' || e.key === 'У') && !(e.target.getAttribute && e.target.getAttribute('contenteditable'))) {
+        editor.toggleEditMode();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); editor.saveFile(); }
+});
+</script>
+</body>
+</html>
