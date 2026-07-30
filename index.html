@@ -400,6 +400,14 @@
       </div>
     </div>
 
+    <!-- Только будни (для "Ежедневно") -->
+    <div class="card" id="workdays-only-card" style="display:none">
+      <label class="check-row" style="padding:0">
+        <input type="checkbox" id="workdays-only-checkbox">
+        <span>Только будни (Пн–Пт)</span>
+      </label>
+    </div>
+
     <!-- День недели / число месяца -->
     <div class="card" id="schedule-day-card" style="display:none">
       <div class="field-label"><span class="field-label-icon">📅</span> День отправки</div>
@@ -571,6 +579,7 @@
     } else {
       card.style.display = 'none';
     }
+    document.getElementById('workdays-only-card').style.display = state.period === 'once' ? 'block' : 'none';
   }
 
   function addQuestion() {
@@ -654,6 +663,8 @@
       return;
     }
 
+    var workdaysOnly = state.period === 'once' && document.getElementById('workdays-only-checkbox').checked;
+
     var payload = JSON.stringify({
       action: 'create_survey',
       title: title,
@@ -661,7 +672,8 @@
       periodicity: state.period,
       participants: participants,
       send_time: sendTime,
-      schedule_day: scheduleDay
+      schedule_day: scheduleDay,
+      workdays_only: workdaysOnly
     });
 
     if (tg) {
@@ -922,6 +934,7 @@
     }).join('');
     var isWeekly = s.frequency === 'weekly' || s.frequency === 'biweekly';
     var isMonthly = s.frequency === 'monthly';
+    var isOnce = s.frequency === 'once';
     var weekdayBtns = [1,2,3,4,5,6,7].map(function(n) {
       var labels = {1:'Пн',2:'Вт',3:'Ср',4:'Чт',5:'Пт',6:'Сб',7:'Вс'};
       return '<button type="button" class="pill-btn' + (String(s.schedule_day) === String(n) ? ' active' : '') + '" data-value="' + n + '" onclick="selectEditScheduleDay(this)">' + labels[n] + '</button>';
@@ -929,7 +942,11 @@
     var scheduleDayHtml =
       '<div class="field-label ef-schedule-label" style="margin:10px 0 6px;' + (isWeekly || isMonthly ? '' : 'display:none') + '">День отправки</div>' +
       '<div class="pill-group ef-schedule-weekday" style="margin-bottom:14px;' + (isWeekly ? '' : 'display:none') + '">' + weekdayBtns + '</div>' +
-      '<input type="number" class="field-input ef-schedule-monthday" min="1" max="31" value="' + (isMonthly ? _escHtml(s.schedule_day || '') : '') + '" placeholder="Число месяца (1-31)" style="margin-bottom:14px;' + (isMonthly ? '' : 'display:none') + '">';
+      '<input type="number" class="field-input ef-schedule-monthday" min="1" max="31" value="' + (isMonthly ? _escHtml(s.schedule_day || '') : '') + '" placeholder="Число месяца (1-31)" style="margin-bottom:14px;' + (isMonthly ? '' : 'display:none') + '">' +
+      '<label class="check-row ef-workdays-only" style="padding:0;margin-bottom:14px;' + (isOnce ? '' : 'display:none') + '">' +
+        '<input type="checkbox"' + (String(s.workdays_only).toLowerCase() === 'true' ? ' checked' : '') + '>' +
+        '<span>Только будни (Пн–Пт)</span>' +
+      '</label>';
     var isAllParticipants = !s.participants || s.participants === 'all';
     var participantsHtml =
       '<div class="field-label" style="margin:10px 0 6px">Участники</div>' +
@@ -958,9 +975,11 @@
     var freq = btn.dataset.value;
     var isWeekly = freq === 'weekly' || freq === 'biweekly';
     var isMonthly = freq === 'monthly';
+    var isOnce = freq === 'once';
     form.querySelector('.ef-schedule-label').style.display = (isWeekly || isMonthly) ? '' : 'none';
     form.querySelector('.ef-schedule-weekday').style.display = isWeekly ? 'flex' : 'none';
     form.querySelector('.ef-schedule-monthday').style.display = isMonthly ? 'block' : 'none';
+    form.querySelector('.ef-workdays-only').style.display = isOnce ? 'flex' : 'none';
   }
 
   function selectEditScheduleDay(btn) {
@@ -1033,13 +1052,14 @@
     } else if (frequency === 'monthly') {
       scheduleDay = form.querySelector('.ef-schedule-monthday').value || '';
     }
+    var workdaysOnly = frequency === 'once' && form.querySelector('.ef-workdays-only input[type="checkbox"]').checked;
     var participantsModeBtn = form.querySelector('.ef-participants-mode .radio-btn.active');
     var participants = 'all';
     if (participantsModeBtn && participantsModeBtn.dataset.value === 'specific') {
       var checkedIds = _getCheckedIds('ef-participants-' + id);
       participants = checkedIds.length ? checkedIds.join(';') : 'all';
     }
-    _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions, schedule_day: scheduleDay, participants: participants };
+    _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions, schedule_day: scheduleDay, workdays_only: workdaysOnly, participants: participants };
     document.getElementById('stitle-' + id).textContent = title;
     form.style.display = 'none';
     updateSaveBtn();
@@ -1072,7 +1092,7 @@
     });
     Object.keys(_surveyEditData).forEach(function(id) {
       if (!_surveyDeletes[id]) {
-        var entry = { id: id, op: 'edit', title: _surveyEditData[id].title, frequency: _surveyEditData[id].frequency, send_time: _surveyEditData[id].send_time, questions: _surveyEditData[id].questions, schedule_day: _surveyEditData[id].schedule_day, participants: _surveyEditData[id].participants };
+        var entry = { id: id, op: 'edit', title: _surveyEditData[id].title, frequency: _surveyEditData[id].frequency, send_time: _surveyEditData[id].send_time, questions: _surveyEditData[id].questions, schedule_day: _surveyEditData[id].schedule_day, workdays_only: _surveyEditData[id].workdays_only, participants: _surveyEditData[id].participants };
         if (_surveyStatusChanges[id]) entry.status = _surveyStatusChanges[id];
         surveyChangesList.push(entry);
       }
