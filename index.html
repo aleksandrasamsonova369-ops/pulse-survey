@@ -315,9 +315,12 @@
     }
     .settings-tab.active { background:var(--bg); color:var(--green); }
     .user-row {
-      display:flex; align-items:center; justify-content:space-between;
+      display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
       padding:12px 0; border-bottom:1px solid var(--border); gap:10px;
     }
+    .user-vacation { flex-basis:100%; display:flex; align-items:center; gap:6px; margin-top:2px; }
+    .user-vacation span { font-size:12px; color:var(--text-muted); flex-shrink:0; }
+    .user-vacation input[type="date"] { flex:1; padding:6px 8px; font-size:12px; min-width:0; }
     .user-row:last-child { border-bottom:none; }
     .user-name { font-size:14px; font-weight:600; color:var(--text); }
     .user-handle { font-size:12px; color:var(--text-muted); }
@@ -790,6 +793,7 @@
   var _settingsData = null;
   var _roleChanges = {};
   var _teamChanges = {};
+  var _vacationChanges = {};
   var _userDeletes = {};
   var _surveyStatusChanges = {};
   var _surveyEditData = {};
@@ -838,6 +842,12 @@
         '<input type="text" class="field-input team-input" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.team || '') + '" value="' + _escHtml(u.team || '') + '" placeholder="Команда" style="width:100px;flex-shrink:0;padding:7px 10px;font-size:13px" oninput="onTeamChange(this)">' +
         '<select class="role-select" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.role) + '" onchange="onRoleChange(this)">' + opts + '</select>' +
         deleteBtn +
+        '<div class="user-vacation">' +
+          '<span>Отпуск:</span>' +
+          '<input type="date" class="field-input vacation-start-input" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.vacation_start || '') + '" value="' + _escHtml(u.vacation_start || '') + '" oninput="onVacationChange(this)">' +
+          '<span>–</span>' +
+          '<input type="date" class="field-input vacation-end-input" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.vacation_end || '') + '" value="' + _escHtml(u.vacation_end || '') + '" oninput="onVacationChange(this)">' +
+        '</div>' +
       '</div>';
     }).join('');
     el.innerHTML = '<div class="card">' + rows + '</div>';
@@ -862,6 +872,22 @@
     updateSaveBtn();
   }
 
+  function onVacationChange(inp) {
+    var tid = String(inp.dataset.tid);
+    var row = inp.closest('.user-vacation');
+    var startInp = row.querySelector('.vacation-start-input');
+    var endInp = row.querySelector('.vacation-end-input');
+    var changed = startInp.value !== startInp.dataset.orig || endInp.value !== endInp.dataset.orig;
+    if (changed) {
+      _vacationChanges[tid] = { start: startInp.value, end: endInp.value };
+      startInp.classList.add('changed'); endInp.classList.add('changed');
+    } else {
+      delete _vacationChanges[tid];
+      startInp.classList.remove('changed'); endInp.classList.remove('changed');
+    }
+    updateSaveBtn();
+  }
+
   function deleteUser(tid) {
     var u = (_settingsData.users || []).find(function(x) { return String(x.telegram_id) === String(tid); });
     var msg = 'Удалить ' + (u ? u.name : tid) + ' из списка?\nЭто действие нельзя отменить.';
@@ -869,6 +895,7 @@
       _userDeletes[tid] = true;
       delete _roleChanges[tid];
       delete _teamChanges[tid];
+      delete _vacationChanges[tid];
       var row = document.getElementById('urow-' + tid);
       if (row) row.remove();
       updateSaveBtn();
@@ -1068,6 +1095,7 @@
   function updateSaveBtn() {
     var hasChanges = Object.keys(_roleChanges).length > 0 ||
       Object.keys(_teamChanges).length > 0 ||
+      Object.keys(_vacationChanges).length > 0 ||
       Object.keys(_userDeletes).length > 0 ||
       Object.keys(_surveyStatusChanges).length > 0 ||
       Object.keys(_surveyEditData).length > 0 ||
@@ -1082,6 +1110,9 @@
     });
     var teamChangesList = Object.keys(_teamChanges).map(function(tid) {
       return { telegram_id: parseInt(tid, 10), team: _teamChanges[tid] };
+    });
+    var vacationChangesList = Object.keys(_vacationChanges).map(function(tid) {
+      return { telegram_id: parseInt(tid, 10), vacation_start: _vacationChanges[tid].start, vacation_end: _vacationChanges[tid].end };
     });
     var userDeletesList = Object.keys(_userDeletes).map(function(tid) {
       return { telegram_id: parseInt(tid, 10) };
@@ -1102,7 +1133,7 @@
         surveyChangesList.push({ id: id, op: _surveyStatusChanges[id] === 'paused' ? 'pause' : 'resume' });
       }
     });
-    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, team_changes: teamChangesList, user_deletes: userDeletesList, survey_changes: surveyChangesList });
+    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, team_changes: teamChangesList, vacation_changes: vacationChangesList, user_deletes: userDeletesList, survey_changes: surveyChangesList });
     if (tg) { tg.sendData(payload); } else { alert('DEV MODE\n\n' + payload); }
   }
 
