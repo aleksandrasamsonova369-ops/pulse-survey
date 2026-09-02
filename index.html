@@ -315,12 +315,9 @@
     }
     .settings-tab.active { background:var(--bg); color:var(--green); }
     .user-row {
-      display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      display:flex; align-items:center; justify-content:space-between;
       padding:12px 0; border-bottom:1px solid var(--border); gap:10px;
     }
-    .user-vacation { flex-basis:100%; display:flex; align-items:center; gap:6px; margin-top:2px; }
-    .user-vacation span { font-size:12px; color:var(--text-muted); flex-shrink:0; }
-    .user-vacation input[type="date"] { flex:1; padding:6px 8px; font-size:12px; min-width:0; }
     .user-row:last-child { border-bottom:none; }
     .user-name { font-size:14px; font-weight:600; color:var(--text); }
     .user-handle { font-size:12px; color:var(--text-muted); }
@@ -331,6 +328,10 @@
     }
     .role-select.changed { border-color:var(--green-light); background:var(--green-pale); }
     .field-input.changed { border-color:var(--green-light); background:var(--green-pale); }
+    .extra-roles-panel { padding:0 0 10px; }
+    .extra-roles-panel.changed-panel { background:var(--green-pale); border-radius:var(--radius-sm); padding:6px 8px 10px; }
+    .extra-role-row .role-select { flex:1; }
+    .extra-role-row .field-input { flex:1; }
     .survey-settings-card {
       background:var(--surface); border-radius:var(--radius); margin-bottom:10px;
       border:1px solid var(--border); box-shadow:0 2px 8px rgba(45,106,79,0.06); overflow:hidden;
@@ -401,14 +402,6 @@
         <button class="pill-btn"        data-value="monthly"  onclick="selectPill(this,'period')">Ежемес.</button>
         <button class="pill-btn"        data-value="once"     onclick="selectPill(this,'period')">Ежедневно</button>
       </div>
-    </div>
-
-    <!-- Только будни (для "Ежедневно") -->
-    <div class="card" id="workdays-only-card" style="display:none">
-      <label class="check-row" style="padding:0">
-        <input type="checkbox" id="workdays-only-checkbox">
-        <span>Только будни (Пн–Пт)</span>
-      </label>
     </div>
 
     <!-- День недели / число месяца -->
@@ -582,7 +575,6 @@
     } else {
       card.style.display = 'none';
     }
-    document.getElementById('workdays-only-card').style.display = state.period === 'once' ? 'block' : 'none';
   }
 
   function addQuestion() {
@@ -666,8 +658,6 @@
       return;
     }
 
-    var workdaysOnly = state.period === 'once' && document.getElementById('workdays-only-checkbox').checked;
-
     var payload = JSON.stringify({
       action: 'create_survey',
       title: title,
@@ -675,8 +665,7 @@
       periodicity: state.period,
       participants: participants,
       send_time: sendTime,
-      schedule_day: scheduleDay,
-      workdays_only: workdaysOnly
+      schedule_day: scheduleDay
     });
 
     if (tg) {
@@ -780,12 +769,10 @@
         card.className = 'response-card';
         var answersHtml = (r.answers || []).map(function(a, i) {
           var qText = (s.questions && s.questions[i]) ? s.questions[i] : ('Вопрос ' + (i + 1));
-          var aLabel = a === 'yes' ? 'Да' : a === 'no' ? 'Нет' : a === 'no_rating' ? 'Без оценки' : a === 'not_worked' ? 'Не работал' : (a !== null && a !== undefined ? String(a) : '—');
+          var aLabel = a === 'yes' ? 'Да' : a === 'no' ? 'Нет' : (a !== null && a !== undefined ? String(a) : '—');
           return '<div class="response-card-answer">' + _escHtml(qText) + ': <strong>' + _escHtml(aLabel) + '</strong></div>';
         }).join('');
-        var mgrRating = (s.manager_ratings || []).find(function(mr) { return mr.target_user_id === r.user_id; });
-        var mgrHtml = mgrRating ? '<div class="response-card-answer" style="margin-top:4px;font-style:italic">Оценка руководителя (' + _escHtml(mgrRating.rater_name) + '): <strong>' + (mgrRating.pct !== null && mgrRating.pct !== undefined ? mgrRating.pct + '%' : '—') + '</strong></div>' : '';
-        card.innerHTML = '<div class="response-card-name">' + _escHtml(r.name) + '</div>' + answersHtml + mgrHtml;
+        card.innerHTML = '<div class="response-card-name">' + _escHtml(r.name) + '</div>' + answersHtml;
         respList.appendChild(card);
       });
     } else { respSec.style.display = 'none'; }
@@ -795,11 +782,13 @@
   var _settingsData = null;
   var _roleChanges = {};
   var _teamChanges = {};
-  var _vacationChanges = {};
+  var _extraRoleChanges = {};
+  var _extraRolesWorking = {};
   var _userDeletes = {};
   var _surveyStatusChanges = {};
   var _surveyEditData = {};
   var _surveyDeletes = {};
+  var _ROLES = ['admin','руководитель','сотрудник','наблюдатель'];
   var _freqLabels = { weekly:'Еженедельно', biweekly:'Раз в 2 нед.', monthly:'Ежемесячно', once:'Ежедневно' };
   var _freqShort  = { weekly:'Еженед.', biweekly:'2 нед.', monthly:'Ежемес.', once:'Ежедневно' };
 
@@ -829,30 +818,92 @@
       el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:30px 0">Нет пользователей</p>';
       return;
     }
-    var roles = ['admin','руководитель','сотрудник','наблюдатель'];
     var selfId = String((_settingsData && _settingsData.requesterId) || '');
     var rows = users.map(function(u) {
-      var opts = roles.map(function(r) {
+      var opts = _ROLES.map(function(r) {
         return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + r + '</option>';
       }).join('');
       var isSelf = String(u.telegram_id) === selfId;
       var deleteBtn = isSelf ? '' :
         '<button type="button" class="btn-action delete" style="flex-shrink:0;padding:7px 10px;font-size:13px" onclick="deleteUser(\'' + u.telegram_id + '\')">Удалить</button>';
+      var extraRoles = [];
+      try { extraRoles = typeof u.extra_roles === 'string' ? JSON.parse(u.extra_roles || '[]') : (u.extra_roles || []); } catch (e) { extraRoles = []; }
+      _extraRolesWorking[u.telegram_id] = extraRoles.slice();
+      var origJson = _escHtml(JSON.stringify(extraRoles));
       return '<div class="user-row" id="urow-' + u.telegram_id + '">' +
         '<div><div class="user-name">' + _escHtml(u.name) + '</div>' +
         (u.username ? '<div class="user-handle">@' + _escHtml(u.username) + '</div>' : '') + '</div>' +
         '<input type="text" class="field-input team-input" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.team || '') + '" value="' + _escHtml(u.team || '') + '" placeholder="Команда" style="width:100px;flex-shrink:0;padding:7px 10px;font-size:13px" oninput="onTeamChange(this)">' +
         '<select class="role-select" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.role) + '" onchange="onRoleChange(this)">' + opts + '</select>' +
         deleteBtn +
-        '<div class="user-vacation">' +
-          '<span>Отпуск:</span>' +
-          '<input type="date" class="field-input vacation-start-input" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.vacation_start || '') + '" value="' + _escHtml(u.vacation_start || '') + '" oninput="onVacationChange(this)">' +
-          '<span>–</span>' +
-          '<input type="date" class="field-input vacation-end-input" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.vacation_end || '') + '" value="' + _escHtml(u.vacation_end || '') + '" oninput="onVacationChange(this)">' +
-        '</div>' +
+      '</div>' +
+      '<div class="extra-roles-panel" id="erpanel-' + u.telegram_id + '" data-tid="' + u.telegram_id + '" data-orig="' + origJson + '">' +
+        _extraRolesPanelHtml(u.telegram_id) +
       '</div>';
     }).join('');
     el.innerHTML = '<div class="card">' + rows + '</div>';
+  }
+
+  function _extraRoleRowHtml(tid, idx, er) {
+    var roleOpts = _ROLES.map(function(r) {
+      return '<option value="' + r + '"' + (er.role === r ? ' selected' : '') + '>' + r + '</option>';
+    }).join('');
+    return '<div class="extra-role-row" style="display:flex;gap:6px;align-items:center;margin-top:6px">' +
+      '<select class="role-select" style="flex:1" data-idx="' + idx + '" data-field="role" onchange="onExtraRoleFieldChange(\'' + tid + '\')">' + roleOpts + '</select>' +
+      '<input type="text" class="field-input" style="flex:1;padding:7px 10px;font-size:13px" placeholder="Команда" value="' + _escHtml(er.team || '') + '" data-idx="' + idx + '" data-field="team" oninput="onExtraRoleFieldChange(\'' + tid + '\')">' +
+      '<button type="button" class="btn-action delete" style="flex-shrink:0;padding:7px 10px;font-size:13px" onclick="removeExtraRole(\'' + tid + '\',' + idx + ')">✕</button>' +
+    '</div>';
+  }
+
+  function _extraRolesPanelHtml(tid) {
+    var arr = _extraRolesWorking[tid] || [];
+    var rowsHtml = arr.map(function(er, idx) { return _extraRoleRowHtml(tid, idx, er); }).join('');
+    return '<div style="font-size:12px;color:var(--text-muted);margin-top:8px">Доп. роли:</div>' +
+      '<div id="erows-' + tid + '">' + rowsHtml + '</div>' +
+      '<button type="button" class="btn-action" style="margin-top:6px;padding:6px 10px;font-size:12px" onclick="addExtraRole(\'' + tid + '\')">+ Добавить роль</button>';
+  }
+
+  function renderExtraRolesPanel(tid) {
+    var panel = document.getElementById('erpanel-' + tid);
+    if (!panel) return;
+    panel.innerHTML = _extraRolesPanelHtml(tid);
+  }
+
+  function addExtraRole(tid) {
+    if (!_extraRolesWorking[tid]) _extraRolesWorking[tid] = [];
+    _extraRolesWorking[tid].push({ role: 'сотрудник', team: '' });
+    renderExtraRolesPanel(tid);
+    onExtraRoleFieldChange(tid);
+  }
+
+  function removeExtraRole(tid, idx) {
+    (_extraRolesWorking[tid] || []).splice(idx, 1);
+    renderExtraRolesPanel(tid);
+    onExtraRoleFieldChange(tid);
+  }
+
+  function onExtraRoleFieldChange(tid) {
+    var panel = document.getElementById('erpanel-' + tid);
+    if (!panel) return;
+    var rowsEl = document.getElementById('erows-' + tid);
+    var working = [];
+    if (rowsEl) {
+      Array.prototype.forEach.call(rowsEl.children, function(rowEl) {
+        var sel = rowEl.querySelector('select[data-field="role"]');
+        var inp = rowEl.querySelector('input[data-field="team"]');
+        working.push({ role: sel ? sel.value : 'сотрудник', team: inp ? inp.value : '' });
+      });
+    }
+    _extraRolesWorking[tid] = working;
+    var nowJson = JSON.stringify(working);
+    if (nowJson !== panel.dataset.orig) {
+      _extraRoleChanges[tid] = working;
+      panel.classList.add('changed-panel');
+    } else {
+      delete _extraRoleChanges[tid];
+      panel.classList.remove('changed-panel');
+    }
+    updateSaveBtn();
   }
 
   function onRoleChange(sel) {
@@ -874,22 +925,6 @@
     updateSaveBtn();
   }
 
-  function onVacationChange(inp) {
-    var tid = String(inp.dataset.tid);
-    var row = inp.closest('.user-vacation');
-    var startInp = row.querySelector('.vacation-start-input');
-    var endInp = row.querySelector('.vacation-end-input');
-    var changed = startInp.value !== startInp.dataset.orig || endInp.value !== endInp.dataset.orig;
-    if (changed) {
-      _vacationChanges[tid] = { start: startInp.value, end: endInp.value };
-      startInp.classList.add('changed'); endInp.classList.add('changed');
-    } else {
-      delete _vacationChanges[tid];
-      startInp.classList.remove('changed'); endInp.classList.remove('changed');
-    }
-    updateSaveBtn();
-  }
-
   function deleteUser(tid) {
     var u = (_settingsData.users || []).find(function(x) { return String(x.telegram_id) === String(tid); });
     var msg = 'Удалить ' + (u ? u.name : tid) + ' из списка?\nЭто действие нельзя отменить.';
@@ -897,9 +932,12 @@
       _userDeletes[tid] = true;
       delete _roleChanges[tid];
       delete _teamChanges[tid];
-      delete _vacationChanges[tid];
+      delete _extraRoleChanges[tid];
+      delete _extraRolesWorking[tid];
       var row = document.getElementById('urow-' + tid);
       if (row) row.remove();
+      var panel = document.getElementById('erpanel-' + tid);
+      if (panel) panel.remove();
       updateSaveBtn();
     }
     if (tg && tg.showConfirm) {
@@ -963,7 +1001,6 @@
     }).join('');
     var isWeekly = s.frequency === 'weekly' || s.frequency === 'biweekly';
     var isMonthly = s.frequency === 'monthly';
-    var isOnce = s.frequency === 'once';
     var weekdayBtns = [1,2,3,4,5,6,7].map(function(n) {
       var labels = {1:'Пн',2:'Вт',3:'Ср',4:'Чт',5:'Пт',6:'Сб',7:'Вс'};
       return '<button type="button" class="pill-btn' + (String(s.schedule_day) === String(n) ? ' active' : '') + '" data-value="' + n + '" onclick="selectEditScheduleDay(this)">' + labels[n] + '</button>';
@@ -971,11 +1008,7 @@
     var scheduleDayHtml =
       '<div class="field-label ef-schedule-label" style="margin:10px 0 6px;' + (isWeekly || isMonthly ? '' : 'display:none') + '">День отправки</div>' +
       '<div class="pill-group ef-schedule-weekday" style="margin-bottom:14px;' + (isWeekly ? '' : 'display:none') + '">' + weekdayBtns + '</div>' +
-      '<input type="number" class="field-input ef-schedule-monthday" min="1" max="31" value="' + (isMonthly ? _escHtml(s.schedule_day || '') : '') + '" placeholder="Число месяца (1-31)" style="margin-bottom:14px;' + (isMonthly ? '' : 'display:none') + '">' +
-      '<label class="check-row ef-workdays-only" style="padding:0;margin-bottom:14px;' + (isOnce ? '' : 'display:none') + '">' +
-        '<input type="checkbox"' + (String(s.workdays_only).toLowerCase() === 'true' ? ' checked' : '') + '>' +
-        '<span>Только будни (Пн–Пт)</span>' +
-      '</label>';
+      '<input type="number" class="field-input ef-schedule-monthday" min="1" max="31" value="' + (isMonthly ? _escHtml(s.schedule_day || '') : '') + '" placeholder="Число месяца (1-31)" style="margin-bottom:14px;' + (isMonthly ? '' : 'display:none') + '">';
     var isAllParticipants = !s.participants || s.participants === 'all';
     var participantsHtml =
       '<div class="field-label" style="margin:10px 0 6px">Участники</div>' +
@@ -1004,11 +1037,9 @@
     var freq = btn.dataset.value;
     var isWeekly = freq === 'weekly' || freq === 'biweekly';
     var isMonthly = freq === 'monthly';
-    var isOnce = freq === 'once';
     form.querySelector('.ef-schedule-label').style.display = (isWeekly || isMonthly) ? '' : 'none';
     form.querySelector('.ef-schedule-weekday').style.display = isWeekly ? 'flex' : 'none';
     form.querySelector('.ef-schedule-monthday').style.display = isMonthly ? 'block' : 'none';
-    form.querySelector('.ef-workdays-only').style.display = isOnce ? 'flex' : 'none';
   }
 
   function selectEditScheduleDay(btn) {
@@ -1081,14 +1112,13 @@
     } else if (frequency === 'monthly') {
       scheduleDay = form.querySelector('.ef-schedule-monthday').value || '';
     }
-    var workdaysOnly = frequency === 'once' && form.querySelector('.ef-workdays-only input[type="checkbox"]').checked;
     var participantsModeBtn = form.querySelector('.ef-participants-mode .radio-btn.active');
     var participants = 'all';
     if (participantsModeBtn && participantsModeBtn.dataset.value === 'specific') {
       var checkedIds = _getCheckedIds('ef-participants-' + id);
       participants = checkedIds.length ? checkedIds.join(';') : 'all';
     }
-    _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions, schedule_day: scheduleDay, workdays_only: workdaysOnly, participants: participants };
+    _surveyEditData[id] = { title: title, frequency: frequency, send_time: sendTime, questions: questions, schedule_day: scheduleDay, participants: participants };
     document.getElementById('stitle-' + id).textContent = title;
     form.style.display = 'none';
     updateSaveBtn();
@@ -1097,7 +1127,7 @@
   function updateSaveBtn() {
     var hasChanges = Object.keys(_roleChanges).length > 0 ||
       Object.keys(_teamChanges).length > 0 ||
-      Object.keys(_vacationChanges).length > 0 ||
+      Object.keys(_extraRoleChanges).length > 0 ||
       Object.keys(_userDeletes).length > 0 ||
       Object.keys(_surveyStatusChanges).length > 0 ||
       Object.keys(_surveyEditData).length > 0 ||
@@ -1113,8 +1143,8 @@
     var teamChangesList = Object.keys(_teamChanges).map(function(tid) {
       return { telegram_id: parseInt(tid, 10), team: _teamChanges[tid] };
     });
-    var vacationChangesList = Object.keys(_vacationChanges).map(function(tid) {
-      return { telegram_id: parseInt(tid, 10), vacation_start: _vacationChanges[tid].start, vacation_end: _vacationChanges[tid].end };
+    var extraRoleChangesList = Object.keys(_extraRoleChanges).map(function(tid) {
+      return { telegram_id: parseInt(tid, 10), extra_roles: _extraRoleChanges[tid] };
     });
     var userDeletesList = Object.keys(_userDeletes).map(function(tid) {
       return { telegram_id: parseInt(tid, 10) };
@@ -1125,7 +1155,7 @@
     });
     Object.keys(_surveyEditData).forEach(function(id) {
       if (!_surveyDeletes[id]) {
-        var entry = { id: id, op: 'edit', title: _surveyEditData[id].title, frequency: _surveyEditData[id].frequency, send_time: _surveyEditData[id].send_time, questions: _surveyEditData[id].questions, schedule_day: _surveyEditData[id].schedule_day, workdays_only: _surveyEditData[id].workdays_only, participants: _surveyEditData[id].participants };
+        var entry = { id: id, op: 'edit', title: _surveyEditData[id].title, frequency: _surveyEditData[id].frequency, send_time: _surveyEditData[id].send_time, questions: _surveyEditData[id].questions, schedule_day: _surveyEditData[id].schedule_day, participants: _surveyEditData[id].participants };
         if (_surveyStatusChanges[id]) entry.status = _surveyStatusChanges[id];
         surveyChangesList.push(entry);
       }
@@ -1135,7 +1165,7 @@
         surveyChangesList.push({ id: id, op: _surveyStatusChanges[id] === 'paused' ? 'pause' : 'resume' });
       }
     });
-    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, team_changes: teamChangesList, vacation_changes: vacationChangesList, user_deletes: userDeletesList, survey_changes: surveyChangesList });
+    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, team_changes: teamChangesList, extra_role_changes: extraRoleChangesList, user_deletes: userDeletesList, survey_changes: surveyChangesList });
     if (tg) { tg.sendData(payload); } else { alert('DEV MODE\n\n' + payload); }
   }
 
