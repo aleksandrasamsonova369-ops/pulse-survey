@@ -590,7 +590,7 @@
       '</div>' +
       '<textarea class="field-input question-text" placeholder="Текст вопроса" rows="2" style="resize:vertical;font-family:inherit"></textarea>' +
       '<select class="type-select question-type">' +
-        '<option value="scale">⭐ Шкала (1–5)</option>' +
+        '<option value="scale">⭐ Шкала (1–3)</option>' +
         '<option value="nps">📊 NPS (0–10)</option>' +
         '<option value="yesno">✅ Да / Нет</option>' +
         '<option value="text">💬 Свободный ответ</option>' +
@@ -784,6 +784,7 @@
   var _teamChanges = {};
   var _extraRoleChanges = {};
   var _extraRolesWorking = {};
+  var _vacationChanges = {};
   var _userDeletes = {};
   var _surveyStatusChanges = {};
   var _surveyEditData = {};
@@ -836,6 +837,12 @@
         '<input type="text" class="field-input team-input" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.team || '') + '" value="' + _escHtml(u.team || '') + '" placeholder="Команда" style="width:100px;flex-shrink:0;padding:7px 10px;font-size:13px" oninput="onTeamChange(this)">' +
         '<select class="role-select" data-tid="' + u.telegram_id + '" data-orig="' + _escHtml(u.role) + '" onchange="onRoleChange(this)">' + opts + '</select>' +
         deleteBtn +
+      '</div>' +
+      '<div class="vacation-row" style="display:flex;gap:6px;align-items:center;margin-top:8px">' +
+        '<span style="font-size:12px;color:var(--text-muted);flex-shrink:0">Отпуск:</span>' +
+        '<input type="date" class="field-input vacation-input" data-tid="' + u.telegram_id + '" data-field="vacation_start" data-orig="' + _escHtml(u.vacation_start || '') + '" value="' + _escHtml(u.vacation_start || '') + '" style="flex:1;padding:6px 8px;font-size:13px" oninput="onVacationChange(this)">' +
+        '<span style="font-size:12px;color:var(--text-muted)">—</span>' +
+        '<input type="date" class="field-input vacation-input" data-tid="' + u.telegram_id + '" data-field="vacation_end" data-orig="' + _escHtml(u.vacation_end || '') + '" value="' + _escHtml(u.vacation_end || '') + '" style="flex:1;padding:6px 8px;font-size:13px" oninput="onVacationChange(this)">' +
       '</div>' +
       '<div class="extra-roles-panel" id="erpanel-' + u.telegram_id + '" data-tid="' + u.telegram_id + '" data-orig="' + origJson + '">' +
         _extraRolesPanelHtml(u.telegram_id) +
@@ -925,6 +932,27 @@
     updateSaveBtn();
   }
 
+  function onVacationChange(inp) {
+    var tid = String(inp.dataset.tid);
+    var row = inp.closest('.vacation-row');
+    var startInp = row.querySelector('[data-field="vacation_start"]');
+    var endInp = row.querySelector('[data-field="vacation_end"]');
+    if (startInp.value && endInp.value && endInp.value < startInp.value) {
+      endInp.value = startInp.value;
+    }
+    var changed = startInp.value !== startInp.dataset.orig || endInp.value !== endInp.dataset.orig;
+    if (changed) {
+      _vacationChanges[tid] = { vacation_start: startInp.value, vacation_end: endInp.value };
+      startInp.classList.add('changed');
+      endInp.classList.add('changed');
+    } else {
+      delete _vacationChanges[tid];
+      startInp.classList.remove('changed');
+      endInp.classList.remove('changed');
+    }
+    updateSaveBtn();
+  }
+
   function deleteUser(tid) {
     var u = (_settingsData.users || []).find(function(x) { return String(x.telegram_id) === String(tid); });
     var msg = 'Удалить ' + (u ? u.name : tid) + ' из списка?\nЭто действие нельзя отменить.';
@@ -934,6 +962,7 @@
       delete _teamChanges[tid];
       delete _extraRoleChanges[tid];
       delete _extraRolesWorking[tid];
+      delete _vacationChanges[tid];
       var row = document.getElementById('urow-' + tid);
       if (row) row.remove();
       var panel = document.getElementById('erpanel-' + tid);
@@ -985,7 +1014,7 @@
 
   function buildEditForm(s) {
     var freqs = ['weekly','biweekly','monthly','once'];
-    var typeLabels = { scale:'Шкала (1-5)', nps:'NPS (0-10)', yesno:'Да / Нет', text:'Свободный ответ', number:'Числовой ответ' };
+    var typeLabels = { scale:'Шкала (1-3)', nps:'NPS (0-10)', yesno:'Да / Нет', text:'Свободный ответ', number:'Числовой ответ' };
     var qHtml = (s.questions || []).map(function(q) {
       var typeOpts = ['scale','nps','yesno','text','number'].map(function(t) {
         return '<option value="' + t + '"' + (q.type === t ? ' selected' : '') + '>' + typeLabels[t] + '</option>';
@@ -1128,6 +1157,7 @@
     var hasChanges = Object.keys(_roleChanges).length > 0 ||
       Object.keys(_teamChanges).length > 0 ||
       Object.keys(_extraRoleChanges).length > 0 ||
+      Object.keys(_vacationChanges).length > 0 ||
       Object.keys(_userDeletes).length > 0 ||
       Object.keys(_surveyStatusChanges).length > 0 ||
       Object.keys(_surveyEditData).length > 0 ||
@@ -1149,6 +1179,9 @@
     var userDeletesList = Object.keys(_userDeletes).map(function(tid) {
       return { telegram_id: parseInt(tid, 10) };
     });
+    var vacationChangesList = Object.keys(_vacationChanges).map(function(tid) {
+      return { telegram_id: parseInt(tid, 10), vacation_start: _vacationChanges[tid].vacation_start, vacation_end: _vacationChanges[tid].vacation_end };
+    });
     var surveyChangesList = [];
     Object.keys(_surveyDeletes).forEach(function(id) {
       surveyChangesList.push({ id: id, op: 'delete' });
@@ -1165,7 +1198,7 @@
         surveyChangesList.push({ id: id, op: _surveyStatusChanges[id] === 'paused' ? 'pause' : 'resume' });
       }
     });
-    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, team_changes: teamChangesList, extra_role_changes: extraRoleChangesList, user_deletes: userDeletesList, survey_changes: surveyChangesList });
+    var payload = JSON.stringify({ action: 'settings_save', role_changes: roleChangesList, team_changes: teamChangesList, extra_role_changes: extraRoleChangesList, vacation_changes: vacationChangesList, user_deletes: userDeletesList, survey_changes: surveyChangesList });
     if (tg) { tg.sendData(payload); } else { alert('DEV MODE\n\n' + payload); }
   }
 
